@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Morning show · FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"><style>.sc{overflow-x:auto}.f{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1px solid #2a3a52;border-radius:10px;padding:0 10px;font:inherit}.ln{display:flex;gap:10px;margin:8px 0;cursor:pointer}.ln.b{flex-direction:row-reverse}.ln i{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:12px;background:var(--c1);border:2px solid var(--c2)}.ln span{background:var(--bg3);padding:8px 12px;border-radius:14px;max-width:80%}.ln.on span{background:var(--c1);outline:2px solid var(--c2)}.ln small{display:block;color:var(--mu);font-size:11px}</style></head><body>
+<main class="wrap"><div class="hero"><small>TV</small><h1>The morning show</h1><p id="sub">Loading…</p></div><div class="card f"><select id="n"></select><select id="y"></select><select id="d"></select></div><div class="card"><button class="btn" id="pl">▶ Play with voices</button> <button class="btn ghost" id="st">■ Stop</button> <span class="mu" id="vm"></span></div><div id="out"></div><div class="card"><h2>Radio: read one game aloud</h2><select id="g"></select><p><button class="btn ghost" id="rg">▶ Read recap</button></p></div><p class="mu">Scripts are written by templates from the real data of the chosen day; the hosts are invented characters and speak with your browser's own voices. No AI is used. The show name is your choice, saved with your world data.</p></main>
+<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/elo.js"></script><script src="assets/js/social.js"></script><script src="assets/js/power.js"></script><script src="assets/js/fantasy.js"></script><script src="assets/js/show.js"></script><script src="assets/js/world.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),o=$('out');const s=await HubDB.summary();
+if(!s){o.innerHTML='<div class="card"><a class="btn" href="import.html">Import league file</a></div>';return}
+const teams=await HubDB.all('teams'),nm=Object.fromEntries(teams.map(t=>[t.tid,(t.region+' '+t.name).trim()])),ab=Object.fromEntries(teams.map(t=>[t.tid,t.abbrev||t.tid])),G=await HubDB.all('games'),M=FBGMModels.run(G);
+$('n').innerHTML=FBGMShow.NAMES.map(x=>`<option>${x}</option>`).join('');$('n').value=World.get('showname',FBGMShow.NAMES[3]);
+$('y').innerHTML=Object.keys(s.seasonGames||{}).sort((a,b)=>b-a).map(x=>`<option>${x}</option>`).join('');
+const days=y=>[...new Set(M.games.filter(g=>g.season===y&&!g.playoffs).map(g=>g.day))].sort((a,b)=>b-a);
+function fillD(){$('d').innerHTML=days(+$('y').value).map(x=>`<option>${x}</option>`).join('')}
+let lines=[],cur=-1,voices=[];
+const rank=L=>Object.fromEntries(L.map((e,i)=>[e.tid,i]));
+async function build(){const y=+$('y').value,d=+$('d').value;Hub.setTitle('Morning show');stop();o.innerHTML='<div class="card"><p class="mu">Writing the show…</p></div>';
+ const day=M.games.filter(g=>g.season===y&&g.day===d),posts=FBGMSocial.feed(M.games,y,d,nm,ab);
+ const hd=G.filter(g=>g.season===y),P1=FBGMPower.power(hd.filter(g=>g.day<=d),teams,y),P0=FBGMPower.power(hd.filter(g=>g.day<d),teams,y),r0=rank(P0);
+ let mover=null;P1.forEach((e,i)=>{if(e.tid in r0){const dl=r0[e.tid]-i;if(Math.abs(dl)>(mover?mover.delta:0))mover={name:e.name,dir:dl>0?'up':'down',delta:Math.abs(dl)}}});
+ const gids=new Set(G.filter(g=>g.season===y&&g.day===d&&!g.allStar).map(g=>g.gid)),rows=(await HubDB.idx('box','season',y)).filter(r=>gids.has(r.gid));let potw=null,bp=0,br=null;rows.forEach(r=>{const p=FBGMFantasy.pts(r);if(p>bp){bp=p;br=r}});
+ if(br){const p=await HubDB.get('players',br.pid)||{};potw={name:((p.firstName||'')+' '+(p.lastName||'')).trim()||'a player',team:nm[br.tid]||'',pts:bp,line:FBGMShow.statLine(br)||'A big day'}}
+ const act=FBGMModels.pulse(M.games.filter(g=>g.season!==y||g.day<=d),y).active[0],take=act?{name:nm[act.tid],n:act.w||act.l,win:act.w>0}:null;
+ let tr=[];try{tr=(await HubDB.idx('events','season',y)).filter(e=>/trade/i.test(e.type||'')&&e.text).sort((a,b)=>b.eid-a.eid).slice(0,2).map(e=>e.text.replace(/<[^>]*>/g,''))}catch(e){}
+ const E=FBGMShow.episode({name:$('n').value,season:y,day:d,n:day.length,posts,potw,power:P1.slice(0,5),mover,take,trades:tr});lines=[];
+ o.innerHTML=E.segments.map(sg=>`<div class="card"><h2>${sg.title}</h2>${sg.lines.map(l=>{const i=lines.push(l)-1;return`<div class="ln ${l.host?'b':''}" data-i="${i}"><i>${E.hosts[l.host].name.split(' ').map(x=>x[0]).join('')}</i><span><small>${E.hosts[l.host].name}</small>${l.text.replace(/</g,'&lt;')}</span></div>`}).join('')}</div>`).join('');
+ o.querySelectorAll('.ln').forEach(e=>e.onclick=()=>play(+e.dataset.i));
+ $('sub').textContent=y+' · day '+d+' · '+day.length+' games';$('g').innerHTML=day.map((g,i)=>`<option value="${i}">${ab[g.away]} @ ${ab[g.home]}</option>`).join('');$('g').dataset.day=JSON.stringify(day.map(g=>g.gid))}
+function vs(){voices=(speechSynthesis.getVoices()||[]).filter(v=>/^en/i.test(v.lang))}
+if('speechSynthesis' in window){vs();speechSynthesis.onvoiceschanged=vs;$('vm').textContent='Voices come from your browser.'}else{$('pl').disabled=$('rg').disabled=true;$('vm').textContent='This browser has no speech.'}
+function say(text,host,end){const u=new SpeechSynthesisUtterance(text);if(voices.length){u.voice=voices[host%voices.length]}u.pitch=host?0.8:1.2;u.onend=end;speechSynthesis.speak(u)}
+function mark(i){cur=i;document.querySelectorAll('.ln').forEach(e=>e.classList.toggle('on',+e.dataset.i===i))}
+function play(i){if(!('speechSynthesis' in window))return;speechSynthesis.cancel();const go=k=>{if(k>=lines.length){mark(-1);return}mark(k);say(lines[k].text,lines[k].host,()=>{if(cur===k)go(k+1)})};go(i)}
+function stop(){if('speechSynthesis' in window)speechSynthesis.cancel();cur=-1;document.querySelectorAll('.ln.on').forEach(e=>e.classList.remove('on'))}
+$('pl').onclick=()=>play(0);$('st').onclick=stop;
+$('rg').onclick=()=>{const day=M.games.filter(g=>g.season===+$('y').value&&g.day===+$('d').value),g=day[+$('g').value];if(g){speechSynthesis.cancel();say(FBGMShow.recap(g,nm),0,()=>{})}};
+$('n').onchange=()=>{World.set('showname',$('n').value);build()};$('y').onchange=()=>{fillD();build()};$('d').onchange=build;fillD();build()})()</script></body></html>

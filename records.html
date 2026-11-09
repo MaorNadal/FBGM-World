@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Records · FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"><style>.sc{overflow-x:auto}td.n{text-align:right;font-variant-numeric:tabular-nums}.me{background:#ffffff12}.tp{color:var(--c2);font-weight:700}</style></head><body>
+<main class="wrap"><div class="hero"><small>Records and history</small><h1>League history</h1><p id="sub">Loading…</p></div><div id="out"></div></main>
+<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/history.js"></script>
+<script>(async()=>{const o=document.getElementById('out');const s=await HubDB.summary();
+if(!s){o.innerHTML='<div class="card"><p>No league imported yet.</p><a class="btn" href="import.html">Import league file</a></div>';document.getElementById('sub').textContent='No data';return}
+const h=FBGMHistory.history(await HubDB.all('teams'),s.season),rec=t=>t.w+'-'+t.l+(t.t?'-'+t.t:'');
+document.getElementById('sub').textContent=h.seasons.length+' seasons · '+h.seasons.filter(x=>x.champ).length+' champions';Hub.setTitle('History');
+const mx=Math.max(1,...h.franchises.map(f=>f.titles));
+o.innerHTML=`<div class="card sc"><h2>Champions by season</h2><table><tr><th>Season</th><th>Champion</th><th>Record</th><th>Best record</th></tr>${h.seasons.map(x=>`<tr><td>${x.season}</td><td class="tp ${x.champ&&x.champ.tid===s.userTid?'me':''}">${x.champ?x.champ.name:(x.season===s.season?'In progress':'—')}</td><td class="n">${x.champ?rec(x.champ):''}</td><td>${x.best?x.best.name+' '+rec(x.best):''}</td></tr>`).join('')}</table></div>
+<div class="card sc"><h2>All-time franchise table</h2><table><tr><th>Franchise</th><th>Titles</th><th>Playoffs</th><th>Record</th><th style="width:25%"></th></tr>${h.franchises.map(f=>`<tr class="${f.tid===s.userTid?'me':''}"><td>${f.name}</td><td class="n"><b>${f.titles}</b></td><td class="n">${f.po}</td><td class="n">${rec(f)}</td><td><div class="bar"><i style="width:${f.titles/mx*100}%"></i></div></td></tr>`).join('')}</table></div>`})()</script></body></html>

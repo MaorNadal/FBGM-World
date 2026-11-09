@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Hall of Fame · FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"><style>.sc{overflow-x:auto}td.n{text-align:right;font-variant-numeric:tabular-nums}</style></head><body>
+<main class="wrap"><div class="hero"><small>Players</small><h1>Hall of Fame</h1><p id="sub">Loading…</p></div><div class="card sc" id="out"></div></main>
+<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/player.js"></script>
+<script>(async()=>{const o=document.getElementById('out');const s=await HubDB.summary();
+if(!s){o.innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+const L=(await HubDB.scan('players',p=>p.hof)).map(p=>{const sr=FBGMPlayer.series(p),l=sr[sr.length-1]||{};return{pid:p.pid,name:((p.firstName||'')+' '+(p.lastName||'')).trim(),pos:l.pos||'',peak:sr.length?Math.max(...sr.map(x=>x.ovr)):0,from:sr.length?sr[0].season:'',to:l.season||'',aw:(p.awards||[]).length}}).sort((a,b)=>b.peak-a.peak||b.aw-a.aw);
+document.getElementById('sub').textContent=L.length+' members';Hub.setTitle('Hall of Fame');
+o.innerHTML=L.length?'<table><tr><th>Player</th><th>Pos</th><th class="n">Peak</th><th class="n">Career</th><th class="n">Awards</th></tr>'+L.map(r=>`<tr><td><a href="player.html?pid=${r.pid}">${r.name}</a></td><td>${r.pos}</td><td class="n"><b>${r.peak}</b></td><td class="n">${r.from}–${r.to}</td><td class="n">${r.aw}</td></tr>`).join('')+'</table>':'<p>No Hall of Fame members found (flag name assumed: hof).</p>'})()</script></body></html>

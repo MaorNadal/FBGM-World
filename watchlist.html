@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Watch list · FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"><style>.sc{overflow-x:auto}td.n{text-align:right;font-variant-numeric:tabular-nums}.inj{color:var(--bad)}</style></head><body>
+<main class="wrap"><div class="hero"><small>Players</small><h1>Watch list</h1><p id="sub">Loading…</p></div><div class="card sc" id="out"></div></main>
+<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/roster.js"></script><script src="assets/js/world.js"></script>
+<script>(async()=>{const o=document.getElementById('out');const s=await HubDB.summary();
+if(!s){o.innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+const teams=Object.fromEntries((await HubDB.all('teams')).map(t=>[t.tid,t.abbrev||t.tid]));
+async function draw(){const ids=World.watch(),R=[];for(const id of ids){const p=await HubDB.get('players',id);if(p)R.push(Object.assign(FBGMRoster.roster([p],p.tid,s.season)[0],{tid:p.tid}))}
+ document.getElementById('sub').textContent=R.length+' players';Hub.setTitle('Watch list');
+ o.innerHTML=R.length?'<table><tr><th>Player</th><th>Team</th><th>Pos</th><th class="n">Age</th><th class="n">Ovr</th><th class="n">Pot</th><th>Injury</th><th>Note</th><th></th></tr>'+R.map(r=>`<tr><td><a href="player.html?pid=${r.pid}">${r.name}</a></td><td>${r.tid>=0?teams[r.tid]:({'-1':'FA','-2':'Prospect','-3':'Retired'}[r.tid]||'')}</td><td>${r.pos}</td><td class="n">${r.age??''}</td><td class="n"><b>${r.ovr??''}</b></td><td class="n">${r.pot??''}</td><td class="inj">${r.injury}</td><td class="mu">${World.note(r.pid).replace(/</g,'&lt;')}</td><td><button class="btn ghost" data-p="${r.pid}" style="min-height:36px;padding:0 12px">✕</button></td></tr>`).join('')+'</table>':'<p>Nobody yet. Open a player page and press “Add to watch list”.</p>';
+ o.querySelectorAll('button[data-p]').forEach(b=>b.onclick=()=>{World.toggle(+b.dataset.p);draw()})}
+draw()})()</script></body></html>

@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Injuries · FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"><style>.sc{overflow-x:auto}td.n{text-align:right;font-variant-numeric:tabular-nums}.f{display:grid;gap:10px;grid-template-columns:1fr 1fr}select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1px solid #2a3a52;border-radius:10px;padding:0 10px;font:inherit}</style></head><body>
+<main class="wrap"><div class="hero"><small>Stats</small><h1>Injury report</h1><p id="sub">Loading…</p></div><div class="card f"><select id="t"><option value="">All teams</option></select><select id="o"><option value="g">Longest out</option><option value="r">Best rating</option></select></div><div class="card sc" id="out"></div></main>
+<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/roster.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),o=$('out');const s=await HubDB.summary();
+if(!s){o.innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+const teams=(await HubDB.all('teams')).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name)),nm=Object.fromEntries(teams.map(t=>[t.tid,t.abbrev||t.tid]));
+$('t').innerHTML+=teams.map(t=>`<option value="${t.tid}">${(t.region+' '+t.name).trim()}</option>`).join('');
+const R=(await HubDB.scan('players',p=>p.tid>=0&&p.injury&&p.injury.gamesRemaining>0)).map(p=>Object.assign(FBGMRoster.roster([p],p.tid,s.season)[0],{tid:p.tid,out:p.injury.gamesRemaining,kind:p.injury.type||'Injured'}));
+function draw(){Hub.setTitle('Injuries');let d=R.filter(r=>!$('t').value||r.tid==$('t').value);d.sort($('o').value==='g'?(a,b)=>b.out-a.out:(a,b)=>(b.ovr||0)-(a.ovr||0));
+ $('sub').textContent=d.length+' injured players';o.innerHTML=d.length?'<table><tr><th>Player</th><th>Team</th><th>Pos</th><th class="n">Ovr</th><th>Injury</th><th class="n">Games out</th></tr>'+d.map(r=>`<tr><td><a href="player.html?pid=${r.pid}">${r.name}</a></td><td>${nm[r.tid]??''}</td><td>${r.pos}</td><td class="n">${r.ovr??''}</td><td>${r.kind}</td><td class="n"><b>${r.out}</b></td></tr>`).join('')+'</table>':'<p>No injuries.</p>'}
+$('t').onchange=$('o').onchange=draw;draw()})()</script></body></html>

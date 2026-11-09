@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Schedule · FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"><style>.f{display:grid;gap:10px;grid-template-columns:2fr 1fr}select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1px solid #2a3a52;border-radius:10px;padding:0 10px;font:inherit}.sc{overflow-x:auto}td.n{text-align:right;font-variant-numeric:tabular-nums}.W{color:var(--ok);font-weight:700}.L{color:var(--bad);font-weight:700}</style></head><body>
+<main class="wrap"><div class="hero"><small>Team · Schedule</small><h1 id="tn">Schedule</h1><p id="sub">Loading…</p></div>
+<div class="card f"><select id="t"></select><select id="y"></select></div><div class="card sc" id="out"></div></main>
+<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/schedule.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),o=$('out');const s=await HubDB.summary();
+if(!s){o.innerHTML='<p>No league imported yet.</p><a class="btn" href="import.html">Import league file</a>';return}
+const teams=(await HubDB.all('teams')).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name)),nm=Object.fromEntries(teams.map(t=>[t.tid,(t.region+' '+t.name).trim()])),ab=Object.fromEntries(teams.map(t=>[t.tid,t.abbrev||t.tid]));
+const rem=(await HubDB.all('misc')).filter(r=>r.src==='schedule').map(r=>r.v);
+$('t').innerHTML=teams.map(t=>`<option value="${t.tid}">${nm[t.tid]}</option>`).join('');$('t').value=new URLSearchParams(location.search).get('tid')||s.userTid;
+$('y').innerHTML=Object.keys(s.seasonGames||{}).sort((a,b)=>b-a).map(x=>`<option>${x}</option>`).join('');
+async function draw(){const tid=+$('t').value,y=+$('y').value;$('tn').textContent=nm[tid];Hub.setTitle(y);
+ const g=await HubDB.idx('games','season',y),R=FBGMSchedule.schedule(g,y===s.season?rem:[],tid,y);
+ $('sub').textContent=y+' · '+R.filter(r=>r.played).length+' played'+(R.some(r=>!r.played)?' · '+R.filter(r=>!r.played).length+' to play':'');
+ o.innerHTML=R.length?'<table><tr><th>Day</th><th></th><th>Opponent</th><th></th><th class="n">Score</th><th class="n">Record</th></tr>'+R.map(r=>`<tr><td>${r.day??''}${r.playoffs?' ★':''}</td><td class="mu">${r.home?'vs':'@'}</td><td><a href="schedule.html?tid=${r.opp}">${nm[r.opp]||ab[r.opp]}</a></td><td class="${r.res||''}">${r.res||''}</td><td class="n">${r.played?r.pf+'–'+r.pa:''}</td><td class="n">${r.rec||''}</td></tr>`).join('')+'</table><p class="mu">★ playoffs</p>':'<p>No games found for this selection.</p>'}
+$('t').onchange=$('y').onchange=draw;draw()})()</script></body></html>

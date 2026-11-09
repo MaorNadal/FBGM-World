@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Album · FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"><style>.sc{overflow-x:auto}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}tr.me{background:#ffffff12}.f{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1px solid #2a3a52;border-radius:10px;padding:0 10px;font:inherit}</style><style>.pk{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.pk svg{width:100%;height:auto;display:block}</style></head><body>
+<main class="wrap"><div class="hero"><small>Players</small><h1>Card album</h1><p id="sub">Loading…</p></div><div class="card f"><select id="t"><option value="">All tiers</option><option value="gold">Elite</option><option value="silver">Starter</option><option value="bronze">Role player</option><option value="base">Reserve</option></select></div><div id="out" class="pk"></div></main>
+<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/player.js"></script><script src="assets/js/world.js"></script><script src="assets/js/cards.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),o=$('out');const s=await HubDB.summary();
+if(!s){o.innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+const teams=Object.fromEntries((await HubDB.all('teams')).map(t=>[t.tid,t])),ids=World.album(),C=[];
+for(const id of ids){const p=await HubDB.get('players',id);if(p)C.push(FBGMCards.cardData(p,teams[p.tid],FBGMPlayer))}C.sort((a,b)=>b.ovr-a.ovr);Hub.setTitle('Album');
+function draw(){const k=$('t').value,L=C.filter(c=>!k||FBGMCards.tier(c.ovr)===k);const n=t=>C.filter(c=>FBGMCards.tier(c.ovr)===t).length;
+ $('sub').textContent=C.length+' cards · Elite '+n('gold')+' · Starter '+n('silver')+' · Role '+n('bronze')+' · Reserve '+n('base');
+ o.innerHTML=L.length?L.map(c=>`<a href="player.html?pid=${c.pid}">${FBGMCards.svg(c)}</a>`).join(''):'<div class="card" style="grid-column:1/-1"><p>No cards yet. Open a pack on the Cards page.</p><a class="btn" href="cards.html">Open a pack</a></div>'}
+$('t').onchange=draw;draw()})()</script></body></html>

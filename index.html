@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"></head><body>
+<main class="wrap" id="app"><div class="hero"><small>FBGM League Hub</small><h1>Your league. Your broadcast.</h1><p>Import your save once and everything here is built from it.</p></div><div class="card"><h2>Getting started</h2><p>No league imported on this device yet.</p><a class="btn" href="import.html">Import league file</a></div></main>
+<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/schedule.js"></script>
+<script>(async()=>{const s=await HubDB.summary();if(!s)return;const [teams,np,ng,nb]=await Promise.all([HubDB.all('teams'),HubDB.count('players'),HubDB.count('games'),HubDB.count('box')]);
+const T=teams.find(t=>t.tid===s.userTid),nm=t=>t?((t.region||'')+' '+(t.name||'')).trim():'—';
+if(T&&T.colors){localStorage.setItem(Hub.KEY+'theme',JSON.stringify([T.colors[0],T.colors[1]]));document.documentElement.style.setProperty('--c1',T.colors[0]);document.documentElement.style.setProperty('--c2',T.colors[1])}
+const ph={'-3':'Fantasy draft','-2':'Expansion draft','-1':'Pre-draft',0:'Preseason',1:'Regular season',2:'After trade deadline',3:'Playoffs',4:'Before draft',5:'Draft',6:'After draft',7:'Re-sign players',8:'Free agency'}[s.phase]||'Phase '+s.phase;
+const n=x=>Number(x).toLocaleString('en-US'),d=new Date(s.importedAt).toLocaleString('en-GB');
+Hub.setTitle(s.season+' season');
+let nx='';try{const R=FBGMSchedule.schedule(await HubDB.idx('games','season',s.season),(await HubDB.all('misc')).filter(r=>r.src==='schedule').map(r=>r.v),s.userTid,s.season),nmv=t=>(teams.find(x=>x.tid===t)||{}).abbrev||t,pl=R.filter(r=>r.played),up=R.filter(r=>!r.played).slice(0,3),ln=r=>`<tr><td>${r.day??''}</td><td class="mu">${r.home?'vs':'@'}</td><td>${nmv(r.opp)}</td><td class="${r.res==='W'?'ok':r.res==='L'?'bad':''}">${r.res||''} ${r.played?r.pf+'–'+r.pa:''}</td></tr>`;
+if(R.length)nx=`<div class="card"><h2>Your team · ${pl.length?(pl[pl.length-1].rec||''):'0-0'}</h2><table>${pl.slice(-3).map(ln).join('')}${up.map(ln).join('')}</table><a href="schedule.html" style="text-decoration:underline" class="mu">Full schedule</a></div>`}catch(e){}
+document.getElementById('app').innerHTML=`<div class="hero"><small>${s.leagueName||'League'} · ${s.season}</small><h1>${nm(T)}</h1><p>${ph}</p></div>
+<div class="grid"><div class="tile"><b>${n(teams.length)}</b><span>Teams</span></div><div class="tile"><b>${n(np)}</b><span>Players</span></div><div class="tile"><b>${n(ng)}</b><span>Games</span></div><div class="tile"><b>${n(nb)}</b><span>Box-score rows</span></div></div>
+${nx}<div class="card"><h2>League history</h2><table><tr><th>Season</th><th>Games stored</th></tr>${Object.keys(s.seasonGames||{}).sort((a,b)=>b-a).map(k=>`<tr><td>${k}</td><td>${n(s.seasonGames[k])}</td></tr>`).join('')}</table></div>
+<p class="mu">Imported ${d}. <a href="import.html" style="text-decoration:underline">Re-import or back up</a></p>`})()</script></body></html>
