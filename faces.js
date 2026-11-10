@@ -17,5 +17,11 @@ window.Faces = (function () {
     const d = document.createElement('div'); d.style.cssText = 'position:absolute;left:-9999px;top:0;width:200px;height:300px'; document.body.appendChild(d);
     try { L.display(d, face); const s = d.querySelector('svg'); if (!s) return ''; return s.outerHTML.replace(/^<svg([^>]*)>/, (m, a) => '<svg' + a.replace(/\s(width|height|x|y)="[^"]*"/g, '') + ` x="${x}" y="${y}" width="${w}" height="${h}">`); } catch (e) { return ''; } finally { d.remove(); }
   }
-  return { draw, svgString, load, silhouette: sil, isReal: () => !!lib };
+  function lazy(root, getFace) {
+    const els = root.querySelectorAll('.av[data-pid]'); if (!els.length) return;
+    const go = el => { if (el.dataset.d) return; el.dataset.d = 1; draw(el, getFace(el.dataset.pid)); };
+    if (!('IntersectionObserver' in window)) { els.forEach(go); return; }
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { go(e.target); io.unobserve(e.target); } }), { rootMargin: '200px' }); els.forEach(e => io.observe(e));
+  }
+  return { draw, lazy, svgString, load, silhouette: sil, isReal: () => !!lib };
 })();

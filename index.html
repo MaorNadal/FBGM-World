@@ -18,4 +18,4 @@ if(R.length)nx=`<div class="card"><h2>Your team · ${pl.length?(pl[pl.length-1].
 document.getElementById('app').innerHTML=`<div class="hero"><small>${s.leagueName||'League'} · ${s.season}</small><h1>${Logo.html(T,64)}${nm(T)}</h1><p>${ph}</p></div>
 <div class="grid"><div class="tile"><b>${n(teams.length)}</b><span>Teams</span></div><div class="tile"><b>${n(np)}</b><span>Players</span></div><div class="tile"><b>${n(ng)}</b><span>Games</span></div><div class="tile"><b>${n(nb)}</b><span>Box-score rows</span></div></div>
 ${nx}<div class="card"><h2>League history</h2><table><tr><th>Season</th><th>Games stored</th></tr>${Object.keys(s.seasonGames||{}).sort((a,b)=>b-a).map(k=>`<tr><td>${k}</td><td>${n(s.seasonGames[k])}</td></tr>`).join('')}</table></div>
-<p class="mu">Imported ${d}. <a href="import.html" style="text-decoration:underline">Re-import or back up</a></p>`})()</script></body></html>
+<p class="mu">Imported ${d}. <a href="import.html" style="text-decoration:underline">Re-import or back up</a></p>`;Hub.countUp(document.getElementById('app'))})()</script></body></html>
