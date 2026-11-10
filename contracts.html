@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Contract value · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>.sc{overflow-x:auto}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}td{white-space:nowrap}th[data-k]{cursor:pointer}select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1px solid #2a3a52;border-radius:10px;padding:0 10px;font:inherit}.two{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start}</style></head><body>
+<main class="wrap"><div class="hero"><small>Team · Contracts</small><h1>Contract value</h1><p id="sub">Loading…</p></div>
+<div class="card"><div class="ctl"><div><label for="t">Team</label><select id="t"></select></div><div><label for="p">Position</label><select id="p"></select></div></div><p class="mu" style="margin-bottom:0">This app's own estimate, not the game's: the expected salary is the median salary of players of the same position and nearly the same rating. Surplus = expected minus actual salary per year; positive means a bargain. Rookie contracts look like bargains by design. Amounts in millions.</p></div>
+<div class="two"><div class="card"><h2>Biggest bargains</h2><div id="b1"></div></div><div class="card"><h2>Most overpaid</h2><div id="b2"></div></div></div>
+<div class="card"><h2>Team surplus (sum of yearly surplus)</h2><div id="tb"></div></div>
+<div class="card sc" id="out"></div></main>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="elo.js"></script><script src="metrics.js"></script><script src="valuemodels.js"></script><script src="leaguedata.js"></script><script src="faces.js"></script><script src="viz.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),V=Viz,esc=V.esc;const s=await HubDB.summary();
+if(!s){$('out').innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+Hub.setTitle('Contract value');
+try{const teams=(await LeagueData.teams()).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name));Logo.init(teams);const T=Object.fromEntries(teams.map(t=>[t.tid,t]));
+ $('out').innerHTML='<p class="mu">Reading all players…</p>';const P=await LeagueData.players(),byId=Object.fromEntries(P.map(p=>[p.pid,p]));
+ const A=FBGMValue.contractRows(P,s.season,FBGMValue.contractModel(P.filter(p=>p.tid>=0&&p.contract).map(p=>{const rs=(p.ratings||[]).filter(x=>x.season<=s.season),q=rs[rs.length-1]||{};return{pos:q.pos,ovr:q.ovr,amount:p.contract.amount}})));
+ $('t').innerHTML='<option value="">All teams</option>'+teams.map(t=>`<option value="${t.tid}">${(t.region+' '+t.name).trim()}</option>`).join('');const h=location.hash.slice(1);if(h)$('t').value=h;
+ $('p').innerHTML='<option value="">All positions</option>'+[...new Set(A.map(r=>r.pos))].sort().map(v=>`<option>${v}</option>`).join('');
+ let key='surplus',dir=-1;const m=v=>(v/1000).toFixed(2);
+ const C=[['name','Player'],['pos','Pos'],['tid','Team'],['age','Age'],['ovr','Ovr'],['amount','Salary'],['expected','Expected'],['surplus','Surplus / yr'],['years','Years'],['total','Total surplus']];
+ const bar=r=>({id:r.pid,label:r.name+' · '+r.pos+' '+r.ovr,value:Math.abs(r.surplus),c1:((T[r.tid]||{}).colors||[])[0],logo:Logo.t(r.tid,22),href:'player.html?pid='+r.pid});
+ function draw(){const tid=$('t').value,pos=$('p').value,L=A.filter(r=>(!tid||r.tid===+tid)&&(!pos||r.pos===pos));history.replaceState(0,'','#'+tid);
+  $('sub').textContent=s.season+' · '+L.length+' contracts · payroll '+m(L.reduce((a,r)=>a+r.amount,0))+'M · surplus '+(L.reduce((a,r)=>a+r.surplus,0)>=0?'+':'')+m(L.reduce((a,r)=>a+r.surplus,0))+'M per year';
+  V.bars($('b1'),L.filter(r=>r.surplus>0).sort((a,b)=>b.surplus-a.surplus).slice(0,8).map(bar),{fmt:v=>'+'+m(v)+'M'});V.bars($('b2'),L.filter(r=>r.surplus<0).sort((a,b)=>a.surplus-b.surplus).slice(0,8).map(bar),{fmt:v=>'-'+m(v)+'M'});
+  const by={};A.forEach(r=>{const e=by[r.tid]=by[r.tid]||{tid:r.tid,v:0};e.v+=r.surplus});V.bars($('tb'),Object.values(by).map(e=>({id:e.tid,label:T[e.tid]?(T[e.tid].region+' '+T[e.tid].name).trim():'Team '+e.tid,value:e.v,c1:((T[e.tid]||{}).colors||[])[0],logo:Logo.t(e.tid,22),href:'contracts.html#'+e.tid})),{top:32,fmt:v=>(v>0?'+':'')+m(v)+'M',mine:s.userTid});
+  const D=L.slice().sort((a,b)=>{const x=a[key],y=b[key];return(typeof x==='string'?x.localeCompare(y):x-y)*dir}).slice(0,250);
+  $('out').innerHTML='<table><tr>'+C.map(([k,l])=>`<th data-k="${k}">${l}${k===key?(dir<0?' ▼':' ▲'):''}</th>`).join('')+'</tr>'+D.map(r=>`<tr><td><span class="av" data-pid="${r.pid}"></span><a href="player.html?pid=${r.pid}">${esc(r.name)}</a></td><td>${r.pos}</td><td>${Logo.t(r.tid,18)} ${(T[r.tid]||{}).abbrev||''}</td><td class="n">${r.age??''}</td><td class="n"><b>${r.ovr}</b></td><td class="n">${m(r.amount)}M</td><td class="n">${m(r.expected)}M</td><td class="n ${r.surplus>=0?'ok':'bad'}">${r.surplus>0?'+':''}${m(r.surplus)}M</td><td class="n">${r.years}</td><td class="n ${r.total>=0?'ok':'bad'}">${r.total>0?'+':''}${m(r.total)}M</td></tr>`).join('')+'</table><p><button class="btn ghost" id="cv">Export CSV</button></p>';
+  $('out').querySelectorAll('th[data-k]').forEach(x=>x.onclick=()=>{const k=x.dataset.k;dir=k===key?-dir:(['name','pos','tid'].includes(k)?1:-1);key=k;draw()});
+  $('cv').onclick=()=>V.csv('contract-value-'+s.season+'.csv',C.map(c=>c[1]),D.map(r=>C.map(([k])=>k==='tid'?(T[r.tid]||{}).abbrev:r[k])));
+  Faces.lazy($('out'),pid=>(byId[pid]||{}).face,pid=>T[(byId[pid]||{}).tid])}
+ $('t').onchange=$('p').onchange=draw;draw()
+}catch(e){$('out').innerHTML='<div class="card err"><b>Could not build the page.</b><p class="mu">'+esc(e.message)+'</p></div>';console.error(e)}})()</script></body></html>

@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>League stats · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>.sc{overflow-x:auto}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}.ctl select{min-height:44px}.mini{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}.mini a{display:block;background:var(--bg3);border-radius:14px;padding:10px 12px}.mini span{color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.mini b{font-size:22px;display:block}.mini svg{width:100%;height:46px}</style></head><body>
+<main class="wrap"><div class="hero"><small>Stats</small><h1>League stats</h1><p id="sub">Loading…</p></div>
+<div class="card"><div class="ctl"><div><label for="x">Statistic</label><select id="x"></select></div><div><label for="po">Games</label><select id="po"><option value="0">Regular season</option><option value="1">Playoffs</option></select></div></div></div>
+<div class="card"><h2 id="ct">League average by season</h2><div id="chart"></div><p class="mu">Highlighted: the league average of the 32 teams. Grey: every team.</p></div>
+<div class="card"><h2>How the league has changed</h2><div class="mini" id="mini"></div></div>
+<div class="card sc" id="tb"></div></main>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="elo.js"></script><script src="metrics.js"></script><script src="leaguedata.js"></script><script src="viz.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),M=FBGMMetrics,V=Viz;const s=await HubDB.summary();
+if(!s){$('tb').innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+Hub.setTitle('League stats');
+const L=M.TEAM.filter(m=>!M.NOW_ONLY.has(m.k)&&m.k!=='elo'),by={};L.forEach(m=>(by[m.group]=by[m.group]||[]).push(m));
+$('x').innerHTML=Object.keys(by).map(g=>`<optgroup label="${g}">${by[g].map(m=>`<option value="${m.k}">${m.label}</option>`).join('')}</optgroup>`).join('');
+const h=new URLSearchParams(location.hash.slice(1));if(h.has('x')&&L.some(m=>m.k===h.get('x')))$('x').value=h.get('x');if(h.has('po'))$('po').value=h.get('po');
+let cache={};
+async function data(po){if(cache[po])return cache[po];const teams=await LeagueData.teams(),seasons=[...new Set(teams.flatMap(t=>(t.seasons||[]).map(x=>x.season)))].sort((a,b)=>a-b),out=[];
+ for(const sn of seasons){const R=M.teamRows(teams,sn,po==='1',await LeagueData.ctx(sn,po==='1'));if(R.length)out.push({season:sn,R})}return cache[po]=out}
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+async function draw(){const k=$('x').value,po=$('po').value,m=M.TEAM_BY[k];history.replaceState(0,'','#x='+k+'&po='+po);
+ try{const D=await data(po),teams=await LeagueData.teams(),T=Object.fromEntries(teams.map(t=>[t.tid,t]));
+  const S=D.map(d=>{const v=d.R.map(r=>r.v[k]).filter(x=>x!=null);return{season:d.season,n:v.length,mean:mean(v),min:v.length?Math.min(...v):null,max:v.length?Math.max(...v):null,rows:d.R}}).filter(x=>x.n);
+  $('ct').textContent=m.label+' · league average by season';
+  const series=teams.map(t=>({id:t.tid,label:(t.region+' '+t.name).trim(),short:t.abbrev,c1:'#5c7090',pts:S.map(x=>{const r=x.rows.find(q=>q.id===t.tid);return r&&r.v[k]!=null?[x.season,r.v[k]]:null}).filter(Boolean)}));
+  series.push({id:'avg',label:'League average',short:'avg',c1:(teams[0]&&'#ffb81c')||'#ffb81c',pts:S.map(x=>[x.season,x.mean])});
+  V.lines($('chart'),series,{hl:'avg',fmt:v=>M.fmt({d:Math.min(2,m.d),u:m.u,k:m.k},v),title:m.label});
+  const f=v=>M.fmt(m,v),best=r=>{const hi=m.better!=='low',q=r.rows.filter(x=>x.v[k]!=null).sort((a,b)=>hi?b.v[k]-a.v[k]:a.v[k]-b.v[k])[0];return q?`${Logo.t(q.tid,18,r.season)} ${f(q.v[k])}`:''};
+  Logo.init(teams);
+  const first=S[0],last=S[S.length-1],pts=S.map(x=>x.mean),lo=Math.min(...pts),hi=Math.max(...pts),spark=`<svg viewBox="0 0 100 40" preserveAspectRatio="none"><polyline fill="none" stroke="var(--c2)" stroke-width="2" vector-effect="non-scaling-stroke" points="${pts.map((v,i)=>(S.length>1?i/(S.length-1)*100:50).toFixed(1)+','+(36-(hi===lo?.5:(v-lo)/(hi-lo))*32).toFixed(1)).join(' ')}"/></svg>`;
+  $('mini').innerHTML=S.length>1?`<a href="#"><span>${first.season} → ${last.season}</span><b>${f(first.mean)} → ${f(last.mean)}</b>${spark}</a><a href="#"><span>Change</span><b>${last.mean-first.mean>=0?'+':''}${M.fmt(Object.assign({},m,{u:''}),last.mean-first.mean)}${m.u}</b><span style="text-transform:none">${((last.mean/first.mean-1)*100).toFixed(1)}% over ${S.length} seasons</span></a><a href="#"><span>Highest season</span><b>${S.reduce((a,b)=>b.mean>a.mean?b:a).season}</b></a><a href="#"><span>Lowest season</span><b>${S.reduce((a,b)=>b.mean<a.mean?b:a).season}</b></a>`:'<p class="mu">Only one season stored.</p>';
+  $('tb').innerHTML=`<table><tr><th>Season</th><th class="n">Teams</th><th class="n">League average</th><th class="n">Lowest</th><th class="n">Highest</th><th>Best team</th></tr>`+S.slice().reverse().map(x=>`<tr><td>${x.season}</td><td class="n">${x.n}</td><td class="n"><b>${f(x.mean)}</b></td><td class="n">${f(x.min)}</td><td class="n">${f(x.max)}</td><td>${best(x)}</td></tr>`).join('')+'</table><p><button class="btn ghost" id="cv">Export CSV</button> <a class="btn ghost" href="charts.html#d=t&c=o&x='+k+'">Open in Chart lab</a></p>';
+  $('cv').onclick=()=>V.csv('league-'+k+'.csv',['Season','Teams','Average','Lowest','Highest'],S.map(x=>[x.season,x.n,x.mean,x.min,x.max]));
+  $('sub').textContent=m.label+' · '+S.length+' seasons · '+(po==='1'?'playoffs':'regular season')
+ }catch(e){$('tb').innerHTML='<div class="card err"><b>The statistic could not be drawn.</b><p class="mu">'+V.esc(e.message)+'</p></div>';console.error(e)}}
+$('x').onchange=$('po').onchange=draw;draw()})()</script></body></html>

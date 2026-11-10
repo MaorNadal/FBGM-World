@@ -1,0 +1,110 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Chart lab · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>.sc{overflow-x:auto}.pre{display:flex;gap:8px;flex-wrap:wrap}.pre button{min-height:36px;padding:0 14px;border-radius:99px;border:1px dashed #3a4d6b;background:none;color:var(--tx);font:600 13px var(--f);cursor:pointer}.pre button:hover{border-color:var(--c2);color:var(--c2)}.ins{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.ins div{background:var(--bg3);border-radius:12px;padding:10px 12px}.ins span{display:block;color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.ins b{font-size:17px}</style></head><body>
+<main class="wrap"><div class="hero"><small>Stats</small><h1>Chart lab</h1><p id="sub">Loading…</p></div>
+<div class="card"><h2>What to draw</h2><div class="seg" id="dset"><button data-v="t">Teams</button><button data-v="p">Players</button></div><div class="seg" id="ctype" style="margin-top:8px"><button data-v="s">Scatter</button><button data-v="r">Ranking</button><button data-v="o">Over time</button><button data-v="a">Race</button><button data-v="h">Heat map</button><button data-v="d">Distribution</button><button data-v="x">Radar</button></div>
+<div class="ctl" style="margin-top:12px"><div><label for="y">Season</label><select id="y"></select></div><div><label for="po">Games</label><select id="po"><option value="0">Regular season</option><option value="1">Playoffs</option></select></div><div id="wx"><label for="x" id="lx">Horizontal axis</label><select id="x"></select></div><div id="wy"><label for="yk">Vertical axis</label><select id="yk"></select></div><div id="ws"><label for="sk">Marker size</label><select id="sk"></select></div><div id="wt" hidden><label for="tm">Team to highlight</label><select id="tm"></select></div><div id="wr" hidden><label for="pf">Profile</label><select id="pf"><option value="off">Offence</option><option value="eff">Drive efficiency</option><option value="bal">Balance</option></select></div><div id="wt2" hidden><label for="tm2">Compare with</label><select id="tm2"></select></div><div id="wt3" hidden><label for="tm3">And with</label><select id="tm3"></select></div><div id="wc" hidden><label for="cu">Race shows</label><select id="cu"><option value="0">Value of each season</option><option value="1">Running total (wins)</option></select></div><div id="wp" hidden><label for="pos">Position</label><select id="pos"></select></div><div id="wg" hidden><label for="gp">Minimum games</label><select id="gp"><option>1</option><option>4</option><option>8</option><option>12</option></select></div><div id="wn" hidden><label for="nn">Points shown</label><select id="nn"><option>60</option><option>120</option><option selected>200</option><option>400</option></select></div><div><label for="q">Find and highlight</label><input id="q" type="text" placeholder="Type a name"></div></div>
+<p class="mu" style="margin:12px 0 6px">Quick charts</p><div class="pre" id="pre"></div>
+<div class="pre" id="saved" style="margin-top:12px"></div><p style="margin-top:12px"><button class="btn ghost" id="sw">⇄ Swap axes</button> <button class="btn ghost" id="png">Save image</button> <button class="btn ghost" id="csv">Export CSV</button> <button class="btn ghost" id="lk">Copy link</button> <button class="btn" id="sv">★ Save this chart</button> <span class="mu" id="msg"></span></p></div>
+<div class="card" id="cv"><div id="chart"></div></div><div class="card" id="in"></div><div class="card sc" id="tb" hidden></div></main>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="elo.js"></script><script src="metrics.js"></script><script src="leaguedata.js"></script><script src="faces.js"></script><script src="world.js"></script><script src="viz.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),M=FBGMMetrics,V=Viz;const s=await HubDB.summary();
+if(!s){$('cv').innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+Hub.setTitle('Chart lab');
+const PRE={t:[['Offence against defence',{x:'ppg',yk:'papg'}],['Passing against rushing',{x:'pypg',yk:'rypg'}],['Drive efficiency',{x:'yd',yk:'ptd2'}],['Pressure and ball security',{x:'skp',yk:'tog'}],['Roster rating against results',{x:'top',yk:'win'}],['Elo against margin',{x:'elo',yk:'mpg'}],['Penalties against yards per play',{x:'peng',yk:'ypp'}]],
+ p:[['Quarterbacks: yards per attempt against touchdowns',{pos:'QB',x:'ypa',yk:'pssTD',sk:'pss'}],['Running backs: carries against yards per carry',{pos:'RB',x:'rusYds',yk:'ypc'}],['Receivers: receptions against yards per catch',{pos:'WR',x:'rec',yk:'ypr'}],['Pass rushers: sacks against tackles',{x:'sk',yk:'tck'}],['Age against rating',{x:'age',yk:'ovr'}],['Value for money',{x:'amount',yk:'av'}]]};
+let teams,games,M0,st={d:'t',c:'s',y:s.season,po:'0',x:'ppg',yk:'papg',sk:'',pos:'',gp:'4',nn:'200',tm:String(s.userTid),cu:'0',pf:'off',tm2:'',tm3:'',q:''},chart=null,rows=[],cur={};
+const tN=t=>(t.region+' '+t.name).trim();
+function readHash(){const h=new URLSearchParams(location.hash.slice(1));for(const k of Object.keys(st))if(h.has(k))st[k]=h.get(k)}
+function writeHash(){const h=new URLSearchParams();for(const k of Object.keys(st))if(st[k]!==''&&k!=='q')h.set(k,st[k]);history.replaceState(0,'','#'+h)}
+function opts(list,sel,none){const g={};list.forEach(m=>(g[m.group]=g[m.group]||[]).push(m));return (none?'<option value="">'+none+'</option>':'')+Object.keys(g).map(k=>`<optgroup label="${k}">${g[k].map(m=>`<option value="${m.k}" ${m.k===sel?'selected':''}>${m.label}${M.NOW_ONLY.has(m.k)&&st.d==='t'?' (current rosters)':''}</option>`).join('')}</optgroup>`).join('')}
+function fillControls(){const L=st.d==='t'?M.TEAM:M.PLAYER;if(!L.some(m=>m.k===st.x))st.x=L[0].k;if(!L.some(m=>m.k===st.yk))st.yk=L[1].k;if(st.sk&&!L.some(m=>m.k===st.sk))st.sk='';
+ $('x').innerHTML=opts(L,st.x);$('yk').innerHTML=opts(L,st.yk);$('sk').innerHTML=opts(L,st.sk,'Same size');$('sk').value=st.sk;
+ const sc=st.c==='s',ov='oah'.includes(st.c);$('wr').hidden=st.c!=='x';$('wt2').hidden=st.c!=='x';$('wt3').hidden=st.c!=='x';$('wc').hidden=!(st.c==='a'&&st.x==='wins');$('wy').hidden=!sc;$('ws').hidden=!sc;$('sw').hidden=!sc;$('wt').hidden=!('ox'.includes(st.c)&&st.d==='t')&&!(st.c==='d'&&st.d==='t');$('wx').hidden=st.c==='x';$('wy').hidden=!sc;$('lx').textContent=sc?'Horizontal axis':'Statistic';$('wp').hidden=st.d!=='p';$('wg').hidden=st.d!=='p';$('wn').hidden=st.d!=='p'||ov;
+ $('y').disabled=ov;$('po').disabled=ov;ov&&st.d==='p'&&(st.c='s');
+ document.querySelectorAll('#dset button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.d));document.querySelectorAll('#ctype button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.c));document.querySelectorAll('#ctype button').forEach(b=>{if('oahx'.includes(b.dataset.v))b.hidden=st.d!=='t'});
+ $('pre').innerHTML=PRE[st.d].map((p,i)=>`<button data-i="${i}">${p[0]}</button>`).join('');
+ ['y','po','gp','nn','tm','pos','cu','pf','tm2','tm3'].forEach(k=>{const e=$(k);if(e&&st[k]!=null)e.value=st[k]})}
+const label=(L,k)=>(L.find(m=>m.k===k)||{label:k});
+const pearson=(a,b)=>{const n=a.length;if(n<4)return null;const ma=a.reduce((x,y)=>x+y,0)/n,mb=b.reduce((x,y)=>x+y,0)/n;let sab=0,saa=0,sbb=0;for(let i=0;i<n;i++){sab+=(a[i]-ma)*(b[i]-mb);saa+=(a[i]-ma)**2;sbb+=(b[i]-mb)**2}return saa&&sbb?sab/Math.sqrt(saa*sbb):null};
+async function build(){const L=st.d==='t'?M.TEAM:M.PLAYER,y=+st.y,po=st.po==='1';
+ if(st.d==='t'){const ctx=await LeagueData.ctx(y,po,{roster:y===s.season&&!po});rows=M.teamRows(teams,y,po,ctx)}
+ else{const P=await LeagueData.players();rows=M.playerRows(P,y,po,{pos:st.pos,minGp:+st.gp})}
+ return {L,y,po}}
+const TM=()=>Object.fromEntries(teams.map(t=>[t.tid,t]));
+async function draw(){writeHash();const out=$('chart');$('in').innerHTML='';$('tb').hidden=true;
+ try{$('sub').textContent='Working…';const {L,y,po}=await build(),tm=TM();if(chart){chart.destroy();chart=null}
+  const mx=label(L,st.x),my=label(L,st.yk),ms=st.sk?label(L,st.sk):null,name=st.d==='t'?'teams':'players',per=po?'playoffs':'regular season';
+  if(st.c==='s'){
+   let R=rows.filter(r=>r.v[st.x]!=null&&r.v[st.yk]!=null);
+   if(st.d==='p'){const z=k=>{const S=M.stats(R,k);return r=>S?(r.v[k]-S.mean)/S.sd:0};const zx=z(st.x),zy=z(st.yk);R=R.slice().sort((a,b)=>(Math.abs(zy(b))+Math.abs(zx(b)))-(Math.abs(zy(a))+Math.abs(zx(a)))).slice(0,+st.nn)}
+   const pts=R.map(r=>({id:r.id,x:r.v[st.x],y:r.v[st.yk],r:ms?r.v[st.sk]:null,label:r.name,short:r.abbrev||r.pos,color:(tm[r.tid]&&tm[r.tid].colors||[])[0],row:r}));
+   const lowX=mx.better==='low',lowY=my.better==='low',good=mx.better&&my.better;
+   const full=r=>M.fmt;
+   const cardFor=p=>{const r=p.row,t=tm[r.tid]||{},c=t.colors||[],x=r.v[st.x],yv=r.v[st.yk],sx=M.standing(rows,st.x,r.id,mx.better),sy=M.standing(rows,st.yk,r.id,my.better);
+    const ctxK=st.d==='t'?['win','ppg','papg','elo']:['ovr','age','av','fp'],more=ctxK.filter(k=>k!==st.x&&k!==st.yk).slice(0,3).map(k=>{const m=label(L,k),q=M.standing(rows,k,r.id,m.better);return {label:m.label,value:M.fmt(m,r.v[k]),rank:q&&q.rank,pct:q&&q.pct}});
+    return V.card({title:r.name,sub:st.d==='t'?(r.abbrev||'')+' · '+y+' '+per:(r.pos||'')+' · '+(t.abbrev||'')+' · age '+(r.age??'–'),c1:c[0],c2:c[1],logo:st.d==='t'?Logo.t(r.tid,40,y):'',face:st.d==='p'?'vf':'',
+     big:[{label:mx.label,value:M.fmt(mx,x),rank:sx&&sx.rank,of:sx&&sx.of},{label:my.label,value:M.fmt(my,yv),rank:sy&&sy.rank,of:sy&&sy.of}],rows:more,href:st.d==='t'?'schedule.html?tid='+r.tid:'player.html?pid='+r.pid,hrefLabel:st.d==='t'?'Team schedule':'Player page'})};
+   chart=V.scatter(out,{points:pts,xl:mx.label,yl:my.label,xNote:lowX?'lower is better, axis flipped':'',yNote:lowY?'lower is better, axis flipped':'',flipX:lowX,flipY:lowY,xFmt:v=>M.fmt({d:Math.min(2,mx.d),u:mx.u,k:mx.k},v),yFmt:v=>M.fmt({d:Math.min(2,my.d),u:my.u,k:my.k},v),quad:good?{tr:'Best on both',bl:'Weak on both'}:null,size:st.d==='t'?34:26,
+    marker:(p,z)=>Logo.t(p.row.tid,z,y)||`<i style="background:${p.color||'#ffb81c'}"></i>`,crest:p=>tm[p.row.tid]?Logo.crest(tm[p.row.tid],40):'',card:cardFor,
+    onShow:(p,cd)=>{const e=cd.querySelector('#vf');if(e)Faces.draw(e,p.row.face,tm[p.row.tid])},title:my.label+' against '+mx.label,labels:st.d==='t'});
+   const r=pearson(pts.map(p=>p.x),pts.map(p=>p.y)),zs=(k,sd)=>{const S=M.stats(R,k);return v=>S?(v-S.mean)/S.sd:0},zx=zs(st.x),zy=zs(st.yk),sgx=lowX?-1:1,sgy=lowY?-1:1;
+   const best=pts.slice().sort((a,b)=>(sgx*zx(b.x)+sgy*zy(b.y))-(sgx*zx(a.x)+sgy*zy(a.y)))[0],odd=pts.slice().sort((a,b)=>Math.abs(zy(b.y)-(r||0)*zx(b.x))-Math.abs(zy(a.y)-(r||0)*zx(a.x)))[0];
+   $('in').innerHTML=pts.length?`<h2>What the chart says</h2><div class="ins"><div><span>Relationship</span><b>${r==null?'not enough points':(Math.abs(r)>=.6?'strong':Math.abs(r)>=.3?'moderate':'weak')+(r>0?' positive':' negative')+' (r = '+r.toFixed(2)+')'}</b></div>${good&&best?`<div><span>Best combination</span><b>${V.esc(best.label)}</b></div>`:''}${odd&&r!=null?`<div><span>Biggest outlier</span><b>${V.esc(odd.label)}</b></div>`:''}<div><span>Points</span><b>${pts.length} ${name}${st.d==='p'&&R.length>=+st.nn?' (most unusual shown)':''}</b></div></div><p class="mu">Hover or tap a marker for its card. Dashed lines are the average of the ${name} shown. Correlation shows that two numbers move together, not that one causes the other.</p>`:''}
+  else if(st.c==='r'){
+   const R=rows.filter(r=>r.v[st.x]!=null).map(r=>({id:r.id,label:r.name,value:r.v[st.x],c1:(tm[r.tid]&&tm[r.tid].colors||[])[0],logo:Logo.t(r.tid,24,y),href:st.d==='t'?'schedule.html?tid='+r.tid:'player.html?pid='+r.pid}));
+   V.bars(out,R,{better:mx.better,top:st.d==='t'?40:25,fmt:v=>M.fmt(mx,v),mine:s.userTid});chart=null;
+   $('in').innerHTML=`<p class="mu">${V.esc(mx.label)} · ${y} ${per}${mx.desc?' · '+V.esc(mx.desc):''}. ${mx.better==='low'?'Lower is better, so the best are on top.':''}</p>`}
+  else if(st.c==='h'){
+   const m=M.TEAM_BY[st.x];if(M.NOW_ONLY.has(st.x)){out.innerHTML='<p class="mu">This statistic exists only for the current rosters. Pick another one for a heat map.</p>';$('sub').textContent='';return}
+   const seasons=[...new Set(teams.flatMap(t=>(t.seasons||[]).map(x=>x.season)))].sort((a,b)=>a-b),by={};
+   for(const sn of seasons){const R=M.teamRows(teams,sn,false,await LeagueData.ctx(sn,false));for(const r of R)(by[r.id]=by[r.id]||{id:r.id,label:r.abbrev||r.name,logo:Logo.t(r.tid,20,sn),vals:{}}).vals[sn]=r.v[st.x]}
+   V.heat(out,Object.values(by).map(t=>({id:t.id,label:t.label,logo:t.logo,vals:seasons.map(sn=>t.vals[sn]==null?null:t.vals[sn])})),seasons.map(x=>String(x).slice(2)),{better:m.better,fmt:v=>M.fmt(Object.assign({},m,{u:''}),v)});chart=null;
+   $('in').innerHTML=`<p class="mu">${V.esc(m.label)} · every team in every season (columns are the last two digits of the season). ${m.better==='low'?'Lower is better, so green means low.':'Green is strong, red is weak.'} Tap a row to mark it.</p>`}
+  else if(st.c==='d'){
+   const items=rows.filter(r=>r.v[st.x]!=null).map(r=>({id:r.id,label:r.name,short:r.abbrev||r.name.split(' ').pop(),value:r.v[st.x]})),q=$('q').value.trim().toLowerCase();
+   const hl=new Set(st.d==='t'?[+st.tm]:[]);if(q.length>=2)items.filter(x=>x.label.toLowerCase().includes(q)).forEach(x=>hl.add(x.id));
+   const info=V.hist(out,items,{hl,fmt:v=>M.fmt(Object.assign({},mx,{d:Math.min(2,mx.d)}),v),title:mx.label+' distribution'});chart=null;
+   const sorted=items.slice().sort((a,b)=>mx.better==='low'?a.value-b.value:b.value-a.value),pick=[...hl].map(id=>{const i=sorted.findIndex(x=>x.id===id);return i<0?'':`<div><span>${V.esc(sorted[i].label)}</span><b>${M.fmt(mx,sorted[i].value)} · ${V.ord(i+1)} of ${sorted.length}</b></div>`}).join('');
+   $('in').innerHTML=info?`<h2>Where the highlighted ${name} stand</h2><div class="ins">${pick||'<div><span>Highlight</span><b>Choose a team or type a name</b></div>'}<div><span>Average</span><b>${M.fmt(mx,info.mean)}</b></div><div><span>Median</span><b>${M.fmt(mx,info.median)}</b></div></div>`:''}
+  else if(st.c==='x'){
+   const PROF={off:['ppg','pypg','rypg','ypp','nya','cmp','rtg','sc'],eff:['yd','ptd2','sc','tod','start','tpd','pld','ypp'],bal:['win','ppg','papg','mpg','tog','skp','peng','elo']},SH={ppg:'Points',pypg:'Pass yds',rypg:'Rush yds',ypp:'Yds/play',nya:'Net Y/A',cmp:'Comp %',rtg:'Rating',sc:'Scoring %',yd:'Yds/drive',ptd2:'Pts/drive',tod:'Turnover %',start:'Start',tpd:'Min/drive',pld:'Plays/drive',win:'Win %',papg:'Pts allowed',mpg:'Margin',tog:'Turnovers',skp:'Sacks taken',peng:'Penalties',elo:'Elo'};
+   const keys=PROF[st.pf]||PROF.off,ids=[st.tm,st.tm2,st.tm3].filter(Boolean).map(Number).filter((v,i,a)=>a.indexOf(v)===i),PAL=['#ffb81c','#4fd1ff','#ff5468'],S=ids.map((id,i)=>{const r=rows.find(q=>q.id===id);if(!r)return null;return{id,label:r.name,color:PAL[i],values:keys.map(k=>{const q=M.standing(rows,k,id,M.TEAM_BY[k].better);return q?q.pct:null}),raw:keys.map(k=>M.fmt(M.TEAM_BY[k],r.v[k]))}}).filter(Boolean);
+   V.radar(out,keys.map(k=>SH[k]||k),S,{title:'Team profile'});chart=null;
+   $('in').innerHTML=S.length?`<table><tr><th>Statistic</th>${S.map(x=>`<th class="n" style="color:${x.color}">${V.esc(x.label)}</th>`).join('')}</tr>${keys.map((k,i)=>`<tr><td>${M.TEAM_BY[k].label}</td>${S.map(x=>{const q=M.standing(rows,k,x.id,M.TEAM_BY[k].better);return `<td class="n">${x.raw[i]} <span class="mu">${q?V.ord(q.rank):''}</span></td>`}).join('')}</tr>`).join('')}</table><p class="mu">Each axis is the percentile among the ${rows.length} teams: the outer ring is the best team in the league, the centre the weakest. For statistics where lower is better the scale is turned around.</p>`:'<p class="mu">Choose a team.</p>'}
+  else if(st.c==='a'){
+   const m=M.TEAM_BY[st.x];if(M.NOW_ONLY.has(st.x)){out.innerHTML='<p class="mu">This statistic exists only for the current rosters. Pick another one for a race.</p>';$('sub').textContent='';return}
+   const seasons=[...new Set(teams.flatMap(t=>(t.seasons||[]).map(x=>x.season)))].sort((a,b)=>a-b),cum=st.cu==='1'&&st.x==='wins',run={},frames=[];
+   for(const sn of seasons){const R=M.teamRows(teams,sn,false,await LeagueData.ctx(sn,false));const rows=[];for(const r of R){if(r.v[st.x]==null)continue;const v=cum?(run[r.id]=(run[r.id]||0)+r.v[st.x]):r.v[st.x];rows.push({id:r.id,label:r.name,value:v,logo:Logo.t(r.tid,24,sn),c1:(tm[r.tid]&&tm[r.tid].colors||[])[0]})}if(rows.length)frames.push({label:String(sn),rows})}
+   V.race(out,frames,{top:10,better:m.better,fmt:v=>M.fmt(m,v),fixed:cum});chart=null;
+   $('in').innerHTML=`<p class="mu">${V.esc(m.label)}${cum?' · running total':''} · top 10 teams in every season. Press play, or drag the slider to move through seasons.</p>`}
+  else{ /* over time: teams only */
+   const seasons=[...new Set(teams.flatMap(t=>(t.seasons||[]).map(x=>x.season)))].sort((a,b)=>a-b),S=teams.map(t=>({id:t.tid,label:tN(t),short:t.abbrev,c1:(t.colors||[])[0],pts:[]}));
+   const m=M.TEAM_BY[st.x];if(M.NOW_ONLY.has(st.x)){out.innerHTML='<p class="mu">This statistic exists only for the current rosters. Pick another one for a view over time.</p>';$('sub').textContent='';return}
+   for(const sn of seasons){const ctx=await LeagueData.ctx(sn,false),R=M.teamRows(teams,sn,false,ctx);for(const r of R){const x=S.find(q=>q.id===r.id);if(x&&r.v[st.x]!=null)x.pts.push([sn,r.v[st.x]])}}
+   V.lines(out,S,{hl:+st.tm,fmt:v=>M.fmt({d:Math.min(2,m.d),u:m.u,k:m.k},v),title:m.label+' by season'});chart=null;
+   const me=S.find(q=>q.id===+st.tm);$('in').innerHTML=`<p class="mu">${V.esc(m.label)}, regular season, all ${seasons.length} seasons. ${me?V.esc(me.label)+' is highlighted; the grey lines are the other teams.':''}</p>`}
+  const n=rows.length;$('sub').textContent=y+' · '+per+' · '+n.toLocaleString('en-US')+' '+name+' with data';
+  cur={rows,L,mx,my}
+ }catch(e){$('chart').innerHTML='<div class="card err"><b>The chart could not be drawn.</b><p class="mu">'+V.esc(e.message)+'</p></div>';console.error(e);$('sub').textContent='Error'}
+ if(chart&&$('q').value)find()}
+function find(){if(!chart)return;const q=$('q').value.trim().toLowerCase();chart.highlight(q.length>=2?new Set(rows.filter(r=>r.name.toLowerCase().includes(q)).map(r=>r.id)):null)}
+(async()=>{try{teams=await LeagueData.teams();Logo.init(teams);games=await LeagueData.games();readHash();
+ const ys=[...new Set(teams.flatMap(t=>(t.seasons||[]).map(x=>x.season)))].sort((a,b)=>b-a);$('y').innerHTML=ys.map(v=>`<option>${v}</option>`).join('');
+ const TO=[...teams].sort((a,b)=>tN(a).localeCompare(tN(b))).map(t=>`<option value="${t.tid}">${tN(t)}</option>`).join('');$('tm').innerHTML=TO;$('tm2').innerHTML='<option value="">–</option>'+TO;$('tm3').innerHTML='<option value="">–</option>'+TO;
+ const P=new Set();(await LeagueData.players()).forEach(p=>(p.ratings||[]).forEach(r=>r.pos&&P.add(r.pos)));$('pos').innerHTML='<option value="">All positions</option>'+[...P].sort().map(v=>`<option>${v}</option>`).join('');
+ fillControls();draw()}catch(e){$('chart').innerHTML='<div class="card err"><b>Could not read the league.</b><p class="mu">'+e.message+'</p></div>'}})();
+document.querySelectorAll('#dset button').forEach(b=>b.onclick=()=>{st.d=b.dataset.v;st.c='s';st.sk='';st.x=st.d==='t'?'ppg':'ypa';st.yk=st.d==='t'?'papg':'pssTD';fillControls();draw()});
+document.querySelectorAll('#ctype button').forEach(b=>b.onclick=()=>{st.c=b.dataset.v;fillControls();draw()});
+$('pre').onclick=e=>{const i=e.target.dataset.i;if(i==null)return;Object.assign(st,{sk:'',pos:''},PRE[st.d][+i][1]);st.c='s';fillControls();draw()};
+const bind=(id,k)=>$(id).onchange=()=>{st[k]=$(id).value;draw()};[['pf','pf'],['tm2','tm2'],['tm3','tm3'],['cu','cu'],['y','y'],['po','po'],['x','x'],['yk','yk'],['sk','sk'],['tm','tm'],['pos','pos'],['gp','gp'],['nn','nn']].forEach(a=>bind(...a));
+
+/* saved charts live in world data (synced by the cloud sync, kept across re-imports) */
+const saved=()=>World.get('charts',[]);
+function showSaved(){$('saved').innerHTML=saved().map((c,i)=>`<button data-i="${i}">★ ${V.esc(c.name)}</button><button data-d="${i}" title="Delete" style="border-style:solid;padding:0 10px">✕</button>`).join('')}
+$('saved').onclick=e=>{const L=saved(),i=e.target.dataset.i,d=e.target.dataset.d;if(d!=null){L.splice(+d,1);World.set('charts',L);showSaved();return}if(i==null)return;const h=new URLSearchParams(L[+i].h);for(const k of Object.keys(st))if(h.has(k))st[k]=h.get(k);fillControls();draw()};
+$('sv').onclick=()=>{const name=prompt('Name for this chart',(label(st.d==='t'?M.TEAM:M.PLAYER,st.yk).label+' vs '+label(st.d==='t'?M.TEAM:M.PLAYER,st.x).label).slice(0,50));if(!name)return;const L=saved();L.push({name,h:location.hash.slice(1)});World.set('charts',L);showSaved();$('msg').textContent='Saved. It is stored with your world data.'};
+showSaved();
+$('q').oninput=()=>st.c==='d'?draw():find();
+$('sw').onclick=()=>{[st.x,st.yk]=[st.yk,st.x];fillControls();draw()};
+$('png').onclick=async()=>{if(!chart){$('msg').textContent='Only the scatter chart can be saved as an image.';return}try{await V.savePng(chart.svgString(),'fbgm-chart-'+st.x+'-'+st.yk+'.png');$('msg').textContent='Saved. Markers are drawn as crests in the image.'}catch(e){$('msg').textContent=e.message}};
+$('csv').onclick=()=>{const {rows,L}=cur;if(!rows||!rows.length)return;V.csv('fbgm-'+(st.d==='t'?'teams':'players')+'-'+st.y+'.csv',['Name',st.d==='t'?'Abbrev':'Pos'].concat(L.map(m=>m.label)),rows.map(r=>[r.name,r.abbrev||r.pos].concat(L.map(m=>r.v[m.k]==null?'':+r.v[m.k].toFixed(3)))));$('msg').textContent='Exported '+rows.length+' rows.'};
+$('lk').onclick=async()=>{try{await navigator.clipboard.writeText(location.href);$('msg').textContent='Link copied.'}catch(e){$('msg').textContent='Copy the address from the browser bar.'}}})()</script></body></html>

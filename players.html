@@ -5,14 +5,14 @@
 <script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="roster.js"></script><script src="faces.js"></script>
 <script>(async()=>{const $=i=>document.getElementById(i),o=$('out');const s=await HubDB.summary();
 if(!s){o.innerHTML='<p>No league imported yet.</p><a class="btn" href="import.html">Import league file</a>';return}
-const teams=(await HubDB.all('teams')).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name));
-$('t').innerHTML=teams.map(t=>`<option value="${t.tid}">${(t.region+' '+t.name).trim()}</option>`).join('');$('t').value=s.userTid;
+let TM={};const teams=(await HubDB.all('teams')).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name));
+teams.forEach(t=>TM[t.tid]=t);$('t').innerHTML=teams.map(t=>`<option value="${t.tid}">${(t.region+' '+t.name).trim()}</option>`).join('');$('t').value=s.userTid;
 let rows=[],key='ovr',dir=-1;const C=[['name','Player'],['pos','Pos'],['age','Age'],['ovr','Ovr'],['pot','Pot'],['amount','Contract'],['exp','Exp'],['injury','Injury']],MAX=300;
 function draw(){const q=$('q').value.toLowerCase(),p=$('p').value;let d=rows.filter(r=>(!p||r.pos===p)&&(!q||r.name.toLowerCase().includes(q)));
  d.sort((a,b)=>{const x=a[key],y=b[key];return(typeof x==='string'||typeof y==='string'?String(x).localeCompare(String(y)):(x==null)-(y==null)||x-y)*dir});const n=d.length;d=d.slice(0,MAX);
  $('sub').textContent=s.season+' · '+n+' players'+(n>MAX?' (top '+MAX+' shown, refine the search)':'');
  o.innerHTML='<table><tr>'+C.map(([k,l])=>`<th data-k="${k}">${l}${k===key?(dir<0?' ▼':' ▲'):''}</th>`).join('')+'</tr>'+d.map(r=>`<tr><td><span class="av" data-pid="${r.pid}"></span><a href="player.html?pid=${r.pid}">${r.name}</a></td><td>${r.pos}</td><td class="n">${r.age??''}</td><td class="n"><b>${r.ovr??''}</b></td><td class="n">${r.pot??''}</td><td class="n">${r.amount==null?'':(r.amount/1000).toFixed(2)+'M'}</td><td class="n">${r.exp??''}</td><td class="inj">${r.injury}</td></tr>`).join('')+'</table>';
- o.querySelectorAll('th').forEach(h=>h.onclick=()=>{const k=h.dataset.k;dir=k===key?-dir:(k==='name'||k==='pos'?1:-1);key=k;draw()});Faces.lazy(o,pid=>(rows.find(r=>r.pid==pid)||{}).face)}
+ o.querySelectorAll('th').forEach(h=>h.onclick=()=>{const k=h.dataset.k;dir=k===key?-dir:(k==='name'||k==='pos'?1:-1);key=k;draw()});Faces.lazy(o,pid=>(rows.find(r=>r.pid==pid)||{}).face,pid=>TM[(rows.find(r=>r.pid==pid)||{}).tid])}
 async function load(){$('t').hidden=$('g').value!=='t';const tid=$('g').value==='t'?+$('t').value:+$('g').value;$('sub').textContent='Loading…';
- rows=FBGMRoster.roster(await HubDB.idx('players','tid',tid),tid,s.season);const ps=[...new Set(rows.map(r=>r.pos))].filter(Boolean).sort();$('p').innerHTML='<option value="">All positions</option>'+ps.map(x=>`<option>${x}</option>`).join('');draw()}
+ rows=FBGMRoster.roster(await HubDB.idx('players','tid',tid),tid,s.season).map(r=>Object.assign(r,{tid}));const ps=[...new Set(rows.map(r=>r.pos))].filter(Boolean).sort();$('p').innerHTML='<option value="">All positions</option>'+ps.map(x=>`<option>${x}</option>`).join('');draw()}
 $('g').onchange=$('t').onchange=load;$('p').onchange=$('q').oninput=draw;load()})()</script></body></html>

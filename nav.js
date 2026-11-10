@@ -2,15 +2,18 @@
 (function () {
   const MENU = [
     ['Home', 'index.html', 1, '⌂'],
-    ['#', 'League'], ['League', 'league.html', 1, '◉'], ['Playoffs', 'playoffs.html', 1, '♕'], ['Schedule', 'schedule.html', 1, '▤'], ['Power', 'power.html', 1, '↑'], ['Pulse', 'pulse.html', 1, '♥'], ['News', 'news.html', 1, '✉'], ['Records', 'records.html', 1, '★'], ['Awards', 'awards.html', 1, '✦'], ['Draft', 'draft.html', 1, '✓'],
-    ['#', 'Team'], ['Team', 'team.html', 1, '▣'], ['Team history', 'teamhist.html', 1, '↺'], ['Cap', 'cap.html', 1, '$'], ['Coaches', 'coaches.html', 1, '✎'],
-    ['#', 'Players'], ['Players', 'players.html', 1, '☻'], ['Compare', 'compare.html', 1, '⇄'], ['Watch list', 'watchlist.html', 1, '☆'], ['Hall of Fame', 'hof.html', 1, '♛'], ['Injuries', 'injuries.html', 1, '✚'], ['Cards', 'cards.html', 1, '▭'], ['Album', 'album.html', 1, '❖'],
-    ['#', 'Stats'], ['Stats', 'stats.html', 1, '▦'], ['Player stats', 'pstats.html', 1, '≣'], ['Team stats', 'tstats.html', 1, '◫'], ['Fantasy', 'fantasy.html', 1, 'F'], ['Next Gen Stats', 'ngs.html', 0, '◈'],
+    ['#', 'League'], ['League', 'league.html', 1, '◉'], ['Playoffs', 'playoffs.html', 1, '♕'], ['Schedule', 'schedule.html', 1, '▤'], ['Power', 'power.html', 1, '↑'], ['Pulse', 'pulse.html', 1, '♥'], ['News', 'news.html', 1, '✉'], ['Records', 'records.html', 1, '★'], ['All-time records', 'alltime.html', 1, '∞'], ['Awards', 'awards.html', 1, '✦'], ['Draft', 'draft.html', 1, '✓'], ['Draft history', 'drafts.html', 1, '⇅'], ['Rivalries', 'rivalries.html', 1, '⚔'], ['Timeline', 'timeline.html', 1, '⏳'], ['Season recap', 'recap.html', 1, '▣'], ['Milestones', 'milestones.html', 1, '⚑'], ['Franchises', 'franchises.html', 1, '⛨'],
+    ['#', 'Team'], ['Team', 'team.html', 1, '▣'], ['Team history', 'teamhist.html', 1, '↺'], ['Matchup', 'matchup.html', 1, '⚔'], ['Depth chart', 'depth.html', 1, '▥'], ['Cap', 'cap.html', 1, '$'], ['Contract value', 'contracts.html', 1, '±'], ['Coaches', 'coaches.html', 1, '✎'],
+    ['#', 'Players'], ['Players', 'players.html', 1, '☻'], ['Player search', 'scout.html', 1, '⌖'], ['Compare', 'compare.html', 1, '⇄'], ['Watch list', 'watchlist.html', 1, '☆'], ['Hall of Fame', 'hof.html', 1, '♛'], ['Injuries', 'injuries.html', 1, '✚'], ['Cards', 'cards.html', 1, '▭'], ['Album', 'album.html', 1, '❖'],
+    ['#', 'Stats'], ['Stats', 'stats.html', 1, '▦'], ['Player stats', 'pstats.html', 1, '≣'], ['Team stats', 'tstats.html', 1, '◫'], ['League stats', 'leaguestats.html', 1, '≋'], ['Chart lab', 'charts.html', 1, '◔'], ['Fantasy', 'fantasy.html', 1, 'F'], ['Next Gen Stats', 'ngs.html', 1, '◈'],
     ['#', 'Models'], ['Predictions', 'models.html', 1, '%'], ['Projection', 'projection.html', 1, '∑'], ['Ageing', 'aging.html', 1, '⌛'],
     ['#', 'Media'], ['TV', 'tv.html', 1, '▶'], ['Morning show', 'morning.html', 1, '☀'], ['Social', 'social.html', 1, '☰'],
-    ['#', 'Tools'], ['Search', 'search.html', 1, '⌕'], ['Tools / Import', 'import.html', 1, '⚙'], ['Diagnostics', 'diagnostics.html', 1, '✔']];
+    ['#', 'Tools'], ['Search', 'search.html', 1, '⌕'], ['Tools / Import', 'import.html', 1, '⚙'], ['Diagnostics', 'diagnostics.html', 1, '✔'], ['Settings', 'settings.html', 1, '⚙']];
+  try { const h = document.head; if (!document.querySelector('link[rel=manifest]')) { h.insertAdjacentHTML('beforeend', '<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#070b12"><link rel="apple-touch-icon" href="icon-192.png">'); }
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
   const KEY = 'fbgmhub_';
   try { const t = JSON.parse(localStorage.getItem(KEY + 'theme') || 'null'); if (t) { const r = document.documentElement.style; r.setProperty('--c1', t[0]); r.setProperty('--c2', t[1]); } } catch (e) {}
+  try { const nn = JSON.parse(localStorage.getItem(KEY + 'ngsname') || 'null'); if (nn && typeof nn === 'string') MENU.forEach(m => { if (m[1] === 'ngs.html') m[0] = nn; }); } catch (e) {}
   const cur = location.pathname.split('/').pop() || 'index.html';
   const li = MENU.map(([n, f, live, ic]) => n === '#' ? `<div class="sec">${f}</div>` : live ? `<a class="${f === cur ? 'on' : ''}" href="${f}"><i>${ic}</i>${n}</a>` : `<span class="soon"><i>${ic}</i>${n}<em>soon</em></span>`).join('');
   const bar = ['Home', 'League', 'Team', 'Players', 'Stats'].map(n => MENU.find(m => m[0] === n)).filter(m => m[2]).map(([n, f, , ic]) => `<a class="${f === cur ? 'on' : ''}" href="${f}"><i>${ic}</i><b>${n.split(' ')[0]}</b></a>`).join('');

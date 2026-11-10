@@ -24,7 +24,7 @@ async function build(){const y=+$('y').value,d=+$('d').value;Hub.setTitle('Morni
  $('sub').textContent=y+' · day '+d+' · '+day.length+' games';$('g').innerHTML=day.map((g,i)=>`<option value="${i}">${ab[g.away]} @ ${ab[g.home]}</option>`).join('');$('g').dataset.day=JSON.stringify(day.map(g=>g.gid))}
 function vs(){voices=(speechSynthesis.getVoices()||[]).filter(v=>/^en/i.test(v.lang))}
 if('speechSynthesis' in window){vs();speechSynthesis.onvoiceschanged=vs;$('vm').textContent='Voices come from your browser.'}else{$('pl').disabled=$('rg').disabled=true;$('vm').textContent='This browser has no speech.'}
-function say(text,host,end){const u=new SpeechSynthesisUtterance(text);if(voices.length){u.voice=voices[host%voices.length]}u.pitch=host?0.8:1.2;u.onend=end;speechSynthesis.speak(u)}
+function say(text,host,end){const u=new SpeechSynthesisUtterance(text);const ch=World.get('voices',{})[host?'b':'a'],pv=ch&&(speechSynthesis.getVoices()||[]).find(v=>v.name===ch);if(pv)u.voice=pv;else if(voices.length){u.voice=voices[host%voices.length]}u.pitch=host?0.8:1.2;u.onend=end;speechSynthesis.speak(u)}
 function mark(i){cur=i;document.querySelectorAll('.ln').forEach(e=>e.classList.toggle('on',+e.dataset.i===i))}
 function play(i){if(!('speechSynthesis' in window))return;speechSynthesis.cancel();const go=k=>{if(k>=lines.length){mark(-1);return}mark(k);say(lines[k].text,lines[k].host,()=>{if(cur===k)go(k+1)})};go(i)}
 function stop(){if('speechSynthesis' in window)speechSynthesis.cancel();cur=-1;document.querySelectorAll('.ln.on').forEach(e=>e.classList.remove('on'))}

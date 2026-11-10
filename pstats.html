@@ -5,15 +5,15 @@
 if(!s){o.innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
 const teams=(await HubDB.all('teams')).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name));Logo.init(teams);const ab=Object.fromEntries(teams.map(t=>[t.tid,t.abbrev||t.tid]));
 $('y').innerHTML=Object.keys(s.seasonGames||{}).sort((a,b)=>b-a).map(x=>`<option>${x}</option>`).join('');$('t').innerHTML+=teams.map(t=>`<option value="${t.tid}">${(t.region+' '+t.name).trim()}</option>`).join('');
-const CATS=Object.keys(FBGMStatsAgg.CATS);let cat=CATS[0],rows=[],skip=new Set(),sortK=null,dir=-1,faces={};
+const CATS=Object.keys(FBGMStatsAgg.CATS);let cat=CATS[0],rows=[],skip=new Set(),sortK=null,dir=-1,faces={},tms={},TT=Object.fromEntries(teams.map(t=>[t.tid,t]));
 $('tb').innerHTML=CATS.map(c=>`<button data-c="${c}">${c}</button>`).join('');
 $('tb').onclick=e=>{if(e.target.dataset.c){cat=e.target.dataset.c;sortK=null;dir=-1;draw()}};
 async function load(){$('sub').textContent='Loading…';const y=+$('y').value;const [r,g]=await Promise.all([HubDB.idx('box','season',y),HubDB.idx('games','season',y)]);rows=r;skip=new Set(g.filter(x=>x.allStar).map(x=>x.gid));draw()}
 async function draw(){const C=FBGMStatsAgg.CATS[cat],tid=$('t').value;Hub.setTitle($('y').value);document.querySelectorAll('#tb button').forEach(b=>b.classList.toggle('on',b.dataset.c===cat));
  let L=FBGMStatsAgg.playerTable(rows,cat,{playoffs:$('k').value==='1',skip,tid:tid===''?null:+tid});const key=sortK||C.sort;L=L.sort((a,b)=>(b[key]-a[key])*(dir<0?1:-1)).slice(0,100);
- const P=await Promise.all(L.map(e=>HubDB.get('players',e.pid)));faces={};P.forEach((p,i)=>{faces[L[i].pid]=p&&p.face});
+ const P=await Promise.all(L.map(e=>HubDB.get('players',e.pid)));faces={};tms={};P.forEach((p,i)=>{faces[L[i].pid]=p&&p.face;tms[L[i].pid]=L[i].tid});
  const fx=(k,v)=>['cmpPct','ypa','ypc','ypr','rating'].includes(k)?v.toFixed(1):v;
  $('sub').textContent=$('y').value+' · '+cat+' · '+L.length+' players shown';
  o.innerHTML=L.length?'<table><tr><th>#</th><th>Player</th><th>Team</th><th class="n" data-k="gp">GP</th>'+C.cols.map(([k,l])=>`<th class="n" data-k="${k}">${l}${k===key?(dir<0?' ▼':' ▲'):''}</th>`).join('')+'</tr>'+L.map((e,i)=>{const p=P[i]||{};return`<tr class="${e.tid===s.userTid?'me':''}"><td>${i+1}</td><td><span class="av" data-pid="${e.pid}"></span><a href="player.html?pid=${e.pid}">${((p.firstName||'')+' '+(p.lastName||'')).trim()||'#'+e.pid}</a></td><td>${Logo.t(e.tid,18)} ${ab[e.tid]??''}</td><td class="n">${e.gp}</td>`+C.cols.map(([k])=>`<td class="n ${k===key?'':''}">${k===key?'<b>'+fx(k,e[k])+'</b>':fx(k,e[k])}</td>`).join('')+'</tr>'}).join('')+'</table>':'<p>No data for this selection.</p>';
- o.querySelectorAll('th[data-k]').forEach(h=>h.onclick=()=>{const k=h.dataset.k;dir=k===sortK?-dir:-1;sortK=k;draw()});Faces.lazy(o,pid=>faces[pid])}
+ o.querySelectorAll('th[data-k]').forEach(h=>h.onclick=()=>{const k=h.dataset.k;dir=k===sortK?-dir:-1;sortK=k;draw()});Faces.lazy(o,pid=>faces[pid],pid=>TT[tms[pid]])}
 $('y').onchange=load;$('k').onchange=$('t').onchange=draw;load()})()</script></body></html>

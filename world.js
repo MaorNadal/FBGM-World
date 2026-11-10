@@ -8,7 +8,7 @@
       note: pid => rd('notes', {})[pid] || '', setNote(pid, t) { const n = rd('notes', {}); t.trim() ? n[pid] = t : delete n[pid]; wr('notes', n); },
       get: rd, set: wr,
       album: () => rd('album', []), addAlbum(a) { const cur = rd('album', []); let n = 0; for (const x of a) if (!cur.includes(x)) { cur.push(x); n++; } wr('album', cur); return n; },
-      exportAll() { const d = {}; for (let i = 0; i < st.length; i++) { const k = st.key(i); if (k.startsWith(P) && k !== P + 'cloudurl' && k !== P + '_t' && k !== P + 'theme') d[k] = st.getItem(k); } return JSON.stringify({ app: 'fbgm-hub-world', v: 1, t: Date.now(), d }, null, 1); },
+      exportAll() { const d = {}; for (let i = 0; i < st.length; i++) { const k = st.key(i); if (k.startsWith(P) && k !== P + 'cloudurl' && k !== P + '_t' && k !== P + 'theme' && k !== P + 'themelock') d[k] = st.getItem(k); } return JSON.stringify({ app: 'fbgm-hub-world', v: 1, t: Date.now(), d }, null, 1); },
       importAll(txt) { const o = JSON.parse(txt); if (o.app !== 'fbgm-hub-world' || !o.d) throw new Error('Not a world file'); let n = 0; for (const k in o.d) if (k.startsWith(P) && k !== P + 'cloudurl' && !k.startsWith(P + '_t')) { st.setItem(k, o.d[k]); if (opts && opts.onChange) opts.onChange(k); n++; } return n; }
     };
   }

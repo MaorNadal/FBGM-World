@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Depth chart · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>
+select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1px solid #2a3a52;border-radius:10px;padding:0 10px;font:inherit}
+.dg{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start}.dg h2{display:flex;justify-content:space-between}.dg h2 span{font-size:11px;letter-spacing:.06em}
+.dr{display:grid;grid-template-columns:24px 1fr auto auto;gap:8px;align-items:center;padding:5px 6px;border-radius:10px}.dr.st{background:color-mix(in srgb,var(--c1) 25%,var(--bg3))}.dr.out{opacity:.6}.dr .rk{color:var(--mu);font-size:12px;text-align:right}.dr b{font-variant-numeric:tabular-nums}.dr small{color:var(--bad);font-size:11px}
+.dr .av{margin:0 8px 0 0;width:22px;height:30px}.wn{border-left:4px solid var(--c2)}
+</style></head><body>
+<main class="wrap"><div class="hero"><small>Team · Depth chart</small><h1 id="tn">Depth chart</h1><p id="sub">Loading…</p></div>
+<div class="card"><h2>Team</h2><select id="ts"></select></div><div id="out"></div></main>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="roster.js"></script><script src="teamdash.js"></script><script src="faces.js"></script><script src="viz.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),o=$('out'),esc=Viz.esc,D=FBGMTeamDash;const s=await HubDB.summary();
+if(!s){o.innerHTML='<div class="card"><a class="btn" href="import.html">Import league file</a></div>';return}
+const teams=(await HubDB.all('teams')).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name)),nm=t=>(t.region+' '+t.name).trim();Logo.init(teams);
+$('ts').innerHTML=teams.map(t=>`<option value="${t.tid}">${nm(t)}</option>`).join('');$('ts').value=location.hash.slice(1)||s.userTid;
+const ORDER=['QB','RB','WR','TE','OL','DL','LB','CB','S','K','P','KR','PR'],START={QB:1,RB:1,WR:3,TE:1,OL:5,DL:4,LB:3,CB:3,S:3,K:1,P:1,KR:1,PR:1};
+let rows=[],T=null;
+async function load(){const tid=+$('ts').value;T=teams.find(x=>x.tid===tid);history.replaceState(0,'','#'+tid);$('tn').innerHTML=Logo.html(T,60,s.season)+nm(T);Hub.setTitle(T.abbrev||'');
+ if(T.colors){document.documentElement.style.setProperty('--c1',T.colors[0]);document.documentElement.style.setProperty('--c2',T.colors[1])}
+ try{rows=D.rosterOf(await HubDB.idx('players','tid',tid),tid,s.season);const by=Object.fromEntries(rows.map(r=>[r.pid,r])),dep=T.depth&&typeof T.depth==='object'?T.depth:null,has=dep&&ORDER.some(k=>Array.isArray(dep[k])&&dep[k].length);
+  let hurt=0,html='';
+  for(const pos of ORDER){let L=[];if(has&&Array.isArray(dep[pos]))L=dep[pos].map(id=>by[id]).filter(Boolean);
+   if(!has&&!['KR','PR'].includes(pos))L=rows.filter(r=>r.pos===pos).sort((a,b)=>(b.ovr||0)-(a.ovr||0));
+   if(!L.length)continue;const n=START[pos]||1,bad=L.slice(0,n).filter(r=>r.hurt);hurt+=bad.length;
+   html+=`<div class="card ${bad.length?'wn':''}"><h2>${pos}<span class="mu">${n} start${bad.length?' · '+bad.length+' injured':''}</span></h2>${L.slice(0,n+3).map((r,i)=>`<div class="dr ${i<n?'st':''} ${r.hurt?'out':''}"><span class="rk">${i+1}</span><span><span class="av" data-pid="${r.pid}"></span><a href="player.html?pid=${r.pid}">${esc(r.name)}</a> <span class="mu">${r.pos!==pos?'('+r.pos+')':''}</span>${r.hurt?'<br><small>'+esc(r.injury)+'</small>':''}</span><span class="mu">${r.age??''}</span><b>${r.ovr??''}</b></div>`).join('')}</div>`}
+  $('sub').textContent=s.season+' · '+rows.length+' players · '+(has?'saved depth chart (read-only)':'no depth chart in the save: best by rating')+(hurt?' · '+hurt+' injured starter'+(hurt>1?'s':''):'');
+  o.innerHTML=(has?'':'<div class="card"><p class="mu">This save has no depth chart for the team in the expected form, so players are ordered by rating. Diagnostics shows what the save holds.</p></div>')+'<div class="dg">'+html+'</div>';
+  Faces.lazy(o,pid=>(by[pid]||{}).face,()=>T)
+ }catch(e){o.innerHTML='<div class="card err"><b>The depth chart could not be built.</b><p class="mu">'+esc(e.message)+'</p></div>';console.error(e)}}
+$('ts').onchange=load;load()})()</script></body></html>

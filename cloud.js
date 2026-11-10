@@ -1,6 +1,6 @@
 /* Automatic world-data sync through your own Google Apps Script web app. No buttons: it pulls on page load and on return to the tab, and pushes 1.5 s after any change. Newest change per key wins. The web-app address is kept per device (paste it once on each device). League data is never synced (re-import the save file). */
 window.Cloud = (function () {
-  const P = 'fbgmhub_', U = P + 'cloudurl', T = P + '_t', skip = k => !k.startsWith(P) || k === U || k === T || k === P + 'theme';
+  const P = 'fbgmhub_', U = P + 'cloudurl', T = P + '_t', skip = k => !k.startsWith(P) || k === U || k === T || k === P + 'theme' || k === P + 'themelock';
   const url = () => localStorage.getItem(U) || '', setUrl = v => { localStorage.setItem(U, (v || '').trim()); };
   const tmap = () => { try { return JSON.parse(localStorage.getItem(T) || '{}'); } catch (e) { return {}; } };
   let timer = null, busy = false, again = false;

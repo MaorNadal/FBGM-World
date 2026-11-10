@@ -1,11 +1,17 @@
-/* Read side of the league database (same schema as import-worker.js). */
+/* Read side of the league database (same schema as import-worker.js).
+   DR-1: all-star games are stored as ordinary games. They are flagged here (allStar = true) on every read of the games store,
+   from the id in the all-star records (misc, src 'allStars') or, as a fallback, from a negative team id, so no page has to know. */
 window.HubDB = (function () {
-  let p; const open = () => p || (p = new Promise((res, rej) => { const q = indexedDB.open('fbgm-hub-league'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); q.onupgradeneeded = () => { q.transaction.abort(); rej(new Error('empty')); }; }));
-  const get = (s, k) => open().then(d => new Promise((res, rej) => { const q = d.transaction(s).objectStore(s).get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }));
-  const all = s => open().then(d => new Promise((res, rej) => { const q = d.transaction(s).objectStore(s).getAll(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }));
+  let p, asP; const open = () => p || (p = new Promise((res, rej) => { const q = indexedDB.open('fbgm-hub-league'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); q.onupgradeneeded = () => { q.transaction.abort(); rej(new Error('empty')); }; }));
+  const asSet = () => asP || (asP = open().then(d => new Promise(res => { const s = new Set(); try { const q = d.transaction('misc').objectStore('misc').openCursor(); q.onsuccess = () => { const c = q.result; if (!c) return res(s); const r = c.value; if (r && r.src === 'allStars' && r.v) { const g = r.v.gid != null ? r.v.gid : r.v.gameId; if (g != null) s.add(g); } c.continue(); }; q.onerror = () => res(s); } catch (e) { res(s); } })));
+  const tag = async rows => { const s = await asSet(), one = g => { if (g && !g.allStar && (s.has(g.gid) || (g.teams && g.teams.some(t => t && t.tid < 0)))) g.allStar = true; return g; }; Array.isArray(rows) ? rows.forEach(one) : one(rows); return rows; };
+  const get = (s, k) => open().then(d => new Promise((res, rej) => { const q = d.transaction(s).objectStore(s).get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); })).then(r => s === 'games' ? tag(r) : r);
+  const all = s => open().then(d => new Promise((res, rej) => { const q = d.transaction(s).objectStore(s).getAll(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); })).then(r => s === 'games' ? tag(r) : r);
   const count = s => open().then(d => new Promise(res => { const q = d.transaction(s).objectStore(s).count(); q.onsuccess = () => res(q.result); }));
-  const idx = (s, i, k) => open().then(d => new Promise((res, rej) => { const q = d.transaction(s).objectStore(s).index(i).getAll(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }));
+  const idx = (s, i, k) => open().then(d => new Promise((res, rej) => { const q = d.transaction(s).objectStore(s).index(i).getAll(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); })).then(r => s === 'games' ? tag(r) : r);
   const scan = (st, keep, max) => open().then(d => new Promise((res, rej) => { const out = [], q = d.transaction(st).objectStore(st).openCursor(); q.onsuccess = () => { const c = q.result; if (!c || (max && out.length >= max)) return res(out); if (keep(c.value)) out.push(c.value); c.continue(); }; q.onerror = () => rej(q.error); }));
+  const scanMap = (st, fn) => open().then(d => new Promise((res, rej) => { const out = [], q = d.transaction(st).objectStore(st).openCursor(); q.onsuccess = () => { const c = q.result; if (!c) return res(out); const v = fn(c.value); if (v !== undefined) out.push(v); c.continue(); }; q.onerror = () => rej(q.error); }));
   const box = gid => open().then(d => new Promise((res, rej) => { const q = d.transaction('box').objectStore('box').getAll(IDBKeyRange.bound([gid, -Infinity], [gid, Infinity])); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }));
-  return { get, all, count, idx, scan, box, summary: () => get('meta', 'summary').catch(() => null) };
+  const stores = () => open().then(d => [...d.objectStoreNames]);
+  return { get, all, count, idx, scan, scanMap, box, stores, allStarIds: asSet, summary: () => get('meta', 'summary').catch(() => null) };
 })();
