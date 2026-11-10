@@ -1,6 +1,6 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Search · FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Search · FBGM Hub</title><link rel="stylesheet" href="hub.css"></head><body>
 <main class="wrap"><div class="hero"><small>Tools</small><h1>Search</h1><p>Players and teams in one box.</p></div><div class="card"><input id="q" type="text" placeholder="Type at least 2 letters" autofocus></div><div id="out"></div></main>
-<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/roster.js"></script>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="roster.js"></script>
 <script>(async()=>{const $=i=>document.getElementById(i),o=$('out');const s=await HubDB.summary();
 if(!s){o.innerHTML='<div class="card"><a class="btn" href="import.html">Import league file</a></div>';return}
 const teams=await HubDB.all('teams'),ab=Object.fromEntries(teams.map(t=>[t.tid,t.abbrev||t.tid])),nm=p=>((p.firstName||'')+' '+(p.lastName||'')).trim();let t;

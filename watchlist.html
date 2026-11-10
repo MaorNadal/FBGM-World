@@ -1,6 +1,6 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Watch list · FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"><style>.sc{overflow-x:auto}td.n{text-align:right;font-variant-numeric:tabular-nums}.inj{color:var(--bad)}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Watch list · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>.sc{overflow-x:auto}td.n{text-align:right;font-variant-numeric:tabular-nums}.inj{color:var(--bad)}</style></head><body>
 <main class="wrap"><div class="hero"><small>Players</small><h1>Watch list</h1><p id="sub">Loading…</p></div><div class="card sc" id="out"></div></main>
-<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/roster.js"></script><script src="assets/js/world.js"></script>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="roster.js"></script><script src="world.js"></script>
 <script>(async()=>{const o=document.getElementById('out');const s=await HubDB.summary();
 if(!s){o.innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
 const teams=Object.fromEntries((await HubDB.all('teams')).map(t=>[t.tid,t.abbrev||t.tid]));

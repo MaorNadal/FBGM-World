@@ -1,11 +1,11 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Team history · FBGM Hub</title><link rel="stylesheet" href="assets/css/hub.css"><style>.sc{overflow-x:auto}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1px solid #2a3a52;border-radius:10px;padding:0 10px;font:inherit}.t{color:var(--c2);font-weight:700}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Team history · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>.sc{overflow-x:auto}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1px solid #2a3a52;border-radius:10px;padding:0 10px;font:inherit}.t{color:var(--c2);font-weight:700}</style></head><body>
 <main class="wrap"><div class="hero"><small>Team · History</small><h1 id="tn">History</h1><p id="sub">Loading…</p></div><div class="card"><select id="t"></select></div><div class="card sc" id="out"></div></main>
-<script src="assets/js/nav.js"></script><script src="assets/js/db.js"></script><script src="assets/js/history.js"></script>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="history.js"></script>
 <script>(async()=>{const $=i=>document.getElementById(i),o=$('out');const s=await HubDB.summary();
 if(!s){o.innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
 const teams=(await HubDB.all('teams')).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name)),H=FBGMHistory.history(teams,s.season),champ=Object.fromEntries(H.seasons.filter(x=>x.champ).map(x=>[x.season,x.champ.tid]));
 $('t').innerHTML=teams.map(t=>`<option value="${t.tid}">${(t.region+' '+t.name).trim()}</option>`).join('');$('t').value=location.hash.slice(1)||s.userTid;
-function draw(){const t=teams.find(x=>x.tid==$('t').value),f=H.franchises.find(x=>x.tid===t.tid);history.replaceState(0,'','#'+t.tid);$('tn').textContent=(t.region+' '+t.name).trim();
+function draw(){const t=teams.find(x=>x.tid==$('t').value),f=H.franchises.find(x=>x.tid===t.tid);history.replaceState(0,'','#'+t.tid);$('tn').innerHTML=Logo.html(t,60)+(t.region+' '+t.name).trim();
  if(t.colors){document.documentElement.style.setProperty('--c1',t.colors[0]);document.documentElement.style.setProperty('--c2',t.colors[1])}
  $('sub').textContent=f.seasons+' seasons · '+f.w+'-'+f.l+(f.t?'-'+f.t:'')+' · '+f.titles+' titles · '+f.po+' playoff trips';Hub.setTitle(t.abbrev||'');
  const S=[...(t.seasons||[])].filter(x=>(x.won||0)+(x.lost||0)+(x.tied||0)>0).sort((a,b)=>b.season-a.season);
