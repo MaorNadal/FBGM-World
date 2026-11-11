@@ -8,11 +8,12 @@
   };
   const SIDE = { DL: 'D', LB: 'D', CB: 'D', S: 'D', OL: 'O', TE: 'O', WR: 'O', QB: 'O', RB: 'O', K: 'S', P: 'S' };
   const UNITS = [['QB', ['QB'], 1], ['Skill', ['RB', 'WR', 'TE'], 5], ['Offensive line', ['OL'], 5], ['Front seven', ['DL', 'LB'], 7], ['Secondary', ['CB', 'S'], 4], ['Special teams', ['K', 'P'], 2]];
-  const lastRating = (p, season) => { const rs = (p.ratings || []).filter(r => r.season <= season); return rs[rs.length - 1] || {}; };
+  const PI = root.FBGMPlayerInfo || (typeof require !== 'undefined' ? require('./pinfo.js') : null);
+  const lastRating = (p, season) => PI.ratingAt(p, season) || {};
 
   /* roster rows of one team (position = the rating position at the season) */
   function rosterOf(players, tid, season) {
-    return players.filter(p => p.tid === tid).map(p => { const r = lastRating(p, season), inj = p.injury && p.injury.gamesRemaining > 0 ? p.injury : null; return { pid: p.pid, name: ((p.firstName || '') + ' ' + (p.lastName || '')).trim(), last: p.lastName || '', pos: r.pos || '', ovr: r.ovr == null ? null : r.ovr, pot: r.pot, age: p.born && p.born.year != null ? season - p.born.year : null, amount: p.contract ? p.contract.amount : null, exp: p.contract ? p.contract.exp : null, injury: inj ? (inj.type || 'Injured') + ' (' + inj.gamesRemaining + ')' : '', hurt: !!inj, face: p.face, jersey: p.jerseyNumber, player: p }; });
+    return players.filter(p => p.tid === tid).map(p => { const r = lastRating(p, season), inj = p.injury && p.injury.gamesRemaining > 0 ? p.injury : null; return { pid: p.pid, name: ((p.firstName || '') + ' ' + (p.lastName || '')).trim(), last: p.lastName || '', pos: PI.pos(p, season, r), ovr: PI.ovr(p, season, r), pot: PI.pot(p, season, r), age: PI.age(p, season), country: PI.country(p).name, iso: PI.country(p).iso, college: PI.college(p), amount: p.contract ? p.contract.amount : null, exp: p.contract ? p.contract.exp : null, injury: inj ? (inj.type || 'Injured') + ' (' + inj.gamesRemaining + ')' : '', hurt: !!inj, face: p.face, jersey: p.jerseyNumber, player: p }; });
   }
   /* filled slots; depth = team.depth ({ QB: [pid, ...], ... }) when valid, otherwise the best players at the position */
   function formation(roster, depth) {

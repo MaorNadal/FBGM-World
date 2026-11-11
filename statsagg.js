@@ -1,5 +1,6 @@
 /* Pure: player and team stat tables from box rows and game headers. Stat keys follow the game's football keys (to be confirmed on the real save). */
 (function (root) {
+  const poOk = (a, m) => m === 'both' || m === 2 || m === '2' || !!a === !!m;
   const CATS = {
     Passing: { sum: ['pssCmp', 'pss', 'pssYds', 'pssTD', 'pssInt'], gate: 'pss', cols: [['pssCmp', 'Cmp'], ['pss', 'Att'], ['cmpPct', 'Cmp%'], ['pssYds', 'Yds'], ['ypa', 'Y/A'], ['pssTD', 'TD'], ['pssInt', 'Int'], ['rating', 'Rate']], sort: 'pssYds' },
     Rushing: { sum: ['rus', 'rusYds', 'rusTD', 'fmbLost'], gate: 'rus', cols: [['rus', 'Car'], ['rusYds', 'Yds'], ['ypc', 'Y/C'], ['rusTD', 'TD'], ['fmbLost', 'Fum']], sort: 'rusYds' },
@@ -14,7 +15,7 @@
   function playerTable(rows, cat, o) {
     o = o || {}; const C = CATS[cat], m = new Map();
     for (const r of rows) {
-      if (!!r.playoffs !== !!o.playoffs || (o.skip && o.skip.has(r.gid)) || (o.tid != null && r.tid !== o.tid)) continue;
+      if (!poOk(r.playoffs, o.playoffs) || (o.skip && o.skip.has(r.gid)) || (o.tid != null && r.tid !== o.tid)) continue;
       if (C.gate ? !(+r[C.gate] > 0) : !C.any.some(k => +r[k] > 0)) continue;
       const e = m.get(r.pid) || Object.assign({ pid: r.pid, tid: r.tid, gp: 0 }, ...C.sum.map(k => ({ [k]: 0 })));
       e.gp++; e.tid = r.tid; C.sum.forEach(k => e[k] += +r[k] || 0); m.set(r.pid, e);

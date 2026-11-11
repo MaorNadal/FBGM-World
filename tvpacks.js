@@ -1,0 +1,209 @@
+/* Festive TV packages (FR-TV-8): halftime show, parade and locker room of the champion (inserted into Super Bowl night), press conferences with the coaches, Hall of Fame induction night,
+   All-Star game, trade-deadline day, retirement ceremonies and game replays. Scenes are built from stored data only (games, box rows, events, awards, players, teams); the words of the hosts, coaches
+   and inductees are templates. Used by tvspecial.html, which supplies the context (c) and plays the scenes. */
+(function (root) {
+  let C = null;
+  const hash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+  const pickBy = (a, k) => a[hash(k) % a.length];
+  const ordS = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
+  const sc = (id, dur, lt, html, say, o) => Object.assign({ id, dur, lt, html, say: say || [] }, o || {});
+  const ident = what => sc('ident', 3400, 'FBGM Network', `<div class="idt"><span>FBGM</span><b>NETWORK</b><small>${C.esc(what)}</small></div>`, [], { fan: 1 });
+  const pnm = p => p ? ((p.firstName || '') + ' ' + (p.lastName || '')).trim() : '';
+  const posOf = (p, y) => C.PI.pos(p, y);
+  const strip = t => String(t == null ? '' : t).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  const lastSeason = p => (p.stats || []).filter(x => !x.playoffs && x.gp > 0).reduce((m, x) => Math.max(m, x.season), -1);
+  const careerSum = p => { const r = { gp: 0, av: 0, pssYds: 0, pssTD: 0, rusYds: 0, rusTD: 0, recYds: 0, rec: 0, recTD: 0, defSk: 0, defInt: 0, tck: 0 }; for (const s of p.stats || []) { if (s.playoffs) continue; r.gp += +s.gp || 0; r.av += +s.av || 0; r.pssYds += +s.pssYds || 0; r.pssTD += +s.pssTD || 0; r.rusYds += +s.rusYds || 0; r.rusTD += +s.rusTD || 0; r.recYds += +s.recYds || 0; r.rec += +s.rec || 0; r.recTD += +s.recTD || 0; r.defSk += +s.defSk || 0; r.defInt += +s.defInt || 0; r.tck += (+s.defTckSolo || 0) + (+s.defTckAst || 0) + ((s.defTckSolo || s.defTckAst) ? 0 : (+s.defTck || 0)); } return r; };
+  const statLine = r => [r.pssYds ? r.pssYds.toLocaleString('en-US') + ' passing yards, ' + r.pssTD + ' TD' : '', r.rusYds ? r.rusYds.toLocaleString('en-US') + ' rushing yards, ' + r.rusTD + ' TD' : '', r.rec ? r.rec + ' catches, ' + r.recYds.toLocaleString('en-US') + ' yards, ' + r.recTD + ' TD' : '', r.defSk ? r.defSk + ' sacks' : '', r.defInt ? r.defInt + ' interceptions' : '', r.tck ? r.tck + ' tackles' : ''].filter(Boolean).join(' · ');
+  const face = (pid, w, h) => `<span class="av" data-pid="${pid}" style="width:${w}cqw;height:${h}cqw"></span>`;
+  const champBy = () => { const m = {}; Object.values(C.FG).forEach(f => m[f.season] = f.w); return m; };
+  const rings = p => { const cb = champBy(); const seas = new Set((p.stats || []).filter(x => !x.playoffs && x.gp > 0 && cb[x.season] === x.tid).map(x => x.season)); return seas.size; };
+  const lg = (g, k) => g.teams[k];
+  const tname = (tid, k) => tid != null && tid >= 0 && C.T[tid] ? C.nm(tid) : 'All-Stars ' + (k ? 'B' : 'A');
+  const tab = tid => tid != null && tid >= 0 && C.T[tid] ? C.ab(tid) : 'ALL';
+  function coachAt(tid, y) {
+    try {
+      const t = C.T[tid], wc = C.World.get('coaches', {}), hc = wc[tid] && wc[tid].HC;
+      const L = FBGMCoachHist.lineage(t, { currentSeason: C.cur, inProgress: C.phase < 3, currentCoach: hc === undefined ? FBGMCoaches.gen('t' + tid, 'HC') : hc, po: C.PO });
+      const ten = L.find(x => x.from <= y && (x.to == null || x.to >= y)) || L[L.length - 1];
+      const titles = Object.values(C.FG).filter(f => f.w === tid && f.season >= ten.from && (ten.to == null || f.season <= ten.to) && f.season <= y).length;
+      return Object.assign({}, ten.coach, { from: ten.from, titles, tenureSeasons: ten.rows.length });
+    } catch (e) { return { name: 'The head coach', style: 'Old school', titles: 0 }; }
+  }
+  /* ---- coach answers by style (templates) ---- */
+  const ANS = {
+    'Disciplinarian': { win: ['We did the little things right. That is the standard here.', 'Discipline wins games. Nothing more to it.'], loss: ['Unacceptable. We were not sharp enough and that starts with me.', 'We will watch the film, fix the mistakes, and we will not repeat them.'], next: ['No celebrating and no excuses. We start preparing for {next} tomorrow.'], star: ['{star} did his job. That is what I expect from every man.'], fut: ['I answer to results. We will keep working.'] },
+    'Players’ coach': { win: ['I am so proud of these guys. They believe in each other.', 'The locker room is special right now. They fight for one another.'], loss: ['I love this group. One game does not define them.', 'We lost together and we will bounce back together.'], next: ['We take a deep breath, enjoy our people, and get ready for {next}.'], star: ['{star} is a joy to coach. Everyone feeds off his energy.'], fut: ['The players believe in what we do and I believe in them.'] },
+    'Innovator': { win: ['The plan worked: we found the matchups we wanted and we hit them.', 'We tried a few things we had not shown before, and they paid off.'], loss: ['They took away what we wanted to do. We will adjust, we always do.', 'Sometimes the new idea needs another week. We learn from this.'], next: ['{next} will bring different problems. We already have a few ideas.'], star: ['{star} is the kind of player who unlocks what we want to do.'], fut: ['We keep evolving. That is the job.'] },
+    'Defensive mind': { win: ['Defense travels. We made them earn every yard.', 'Our defense set the tone and the offense took care of the football.'], loss: ['We did not get enough stops, and that is on me.', 'We gave up too many big plays. Simple as that.'], next: ['{next}: we will study their tendencies and take away their best weapon.'], star: ['{star} was everywhere. That is the effort I want.'], fut: ['Keep the points down and the rest takes care of itself.'] },
+    'Offensive guru': { win: ['The offense found a rhythm and the guys made plays.', 'When we execute at this tempo, it is hard to stop us.'], loss: ['We were out of sync on offense. I will look at the play calling first.', 'We have to score more. That is the bottom line.'], next: ['{next} will test us. We will have a plan on paper by tonight.'], star: ['{star} made some special plays out there.'], fut: ['We keep pushing the ball and the scoreboard will show it.'] },
+    'Developer of talent': { win: ['Our young guys grew up tonight. That is what this is about.', 'You could see the work from the practice field show up on Sunday.'], loss: ['Young players learn the most from nights like this one.', 'We will use this as a teaching tape.'], next: ['Next up is {next}. Another chance for the group to get better.'], star: ['{star} keeps getting better every week.'], fut: ['Build the right way, and the wins follow.'] },
+    'Old school': { win: ['We ran the ball, we stopped the run, we won the line of scrimmage.', 'Football is still blocking and tackling. We did both.'], loss: ['We got out-toughed. That is something I will not accept.', 'We lost the battle up front. That is how games are lost.'], next: ['Back to work. {next} is next, and they are a tough, physical team.'], star: ['{star} is a football player. That is the best compliment I know.'], fut: ['Wins and losses are all that matter. I will take my chances.'] },
+    'Analytics-minded': { win: ['The numbers said go for it and we did. It paid off.', 'Efficiency and decisions: the process was right tonight.'], loss: ['The process was fine; the outcome was not. We will look at where the variance hit us.', 'The data says we were close. We stay with what works.'], next: ['{next}: we have the model, the film and a plan.'], star: ['{star} was the most efficient player on the field.'], fut: ['Trust the process and let the sample size do its work.'] }
+  };
+  const answers = (style, k) => ANS[style] || ANS['Old school'];
+  /* ================= modes ================= */
+  const modes = {};
+  /* ---- press conference ---- */
+  modes.pc = {
+    label: 'Press conference',
+    years: () => C.allSeasons,
+    extras: async y => {
+      const tid0 = C.userTid != null ? C.userTid : C.teams[0].tid;
+      return [{ id: 'team', label: 'Team', options: C.teams.map(t => ({ v: t.tid, t: C.nm(t.tid) })), def: tid0 }, { id: 'game', label: 'Game', dep: 'team', options: tid => C.G.filter(g => g.season === y && !g.allStar && g.teams && g.teams.length === 2 && g.teams.some(t => t.tid === +tid) && g.teams[0].pts != null).sort((a, b) => (b.playoffs ? 1 : 0) - (a.playoffs ? 1 : 0) || (b.day || 0) - (a.day || 0)).map(g => { const me = g.teams.find(t => t.tid === +tid), op = g.teams.find(t => t.tid !== +tid); return { v: g.gid, t: (g.playoffs ? 'Playoffs · ' : 'Day ' + (g.day ?? '?') + ' · ') + (me.pts > op.pts ? 'W ' : me.pts < op.pts ? 'L ' : 'T ') + me.pts + '–' + op.pts + ' vs ' + C.ab(op.tid) }; }) }];
+    },
+    build: async (y, ex) => {
+      const tid = +ex.team, gid = +ex.game, g = C.G.find(x => x.gid === gid);
+      if (!g) return { scenes: [sc('none', 7000, '', '<div class="kick">Press conference</div><div class="mid">No game selected</div>')], ticker: 'Press conference ·' };
+      const me = g.teams.find(t => t.tid === tid), op = g.teams.find(t => t.tid !== tid), won = me.pts > op.pts, tie = me.pts === op.pts, cch = coachAt(tid, y), A = answers(cch.style), B = await HubDB.box(gid);
+      const fp = B.filter(b => b.tid === tid).map(b => ({ b, p: C.pts(b) })).sort((a, b) => b.p - a.p), star = fp[0] ? C.pn(fp[0].b.pid) : 'our guys';
+      const nx = C.G.filter(x => x.season === y && !x.allStar && x.teams && x.teams.some(t => t.tid === tid) && ((x.day || 0) > (g.day || 0) || (x.playoffs && !g.playoffs))).sort((a, b) => (a.day || 0) - (b.day || 0))[0];
+      let nextT = nx ? nx.teams.find(t => t.tid !== tid).tid : null; if (nextT == null && y === C.cur) { const m = C.rem.filter(r => r.homeTid === tid || r.awayTid === tid).sort((a, b) => (a.day || 0) - (b.day || 0))[0]; if (m) nextT = m.homeTid === tid ? m.awayTid : m.homeTid; }
+      const nextName = nextT != null ? C.nm(nextT) : 'the next opponent', hurt = C.P.filter(p => p.tid === tid && p.injury && p.injury.gamesRemaining > 0 && y === C.cur).sort((a, b) => (b.ratings.slice(-1)[0] || {}).ovr - (a.ratings.slice(-1)[0] || {}).ovr)[0];
+      const e = (C.teams.find(t => t.tid === tid).seasons || []).find(x => x.season === y) || {}, gg = (e.won || 0) + (e.lost || 0) + (e.tied || 0), pct = gg ? ((e.won || 0) + (e.tied || 0) / 2) / gg : .5;
+      const fill = s => s.replace('{team}', C.nm(tid)).replace('{opp}', C.nm(op.tid)).replace('{star}', star).replace('{next}', nextName), res = tie ? 'tie' : won ? 'win' : 'loss', pick = (arr, k) => fill(pickBy(arr, gid + k));
+      const QA = [[`Coach, ${won ? 'congratulations' : tie ? 'a tie today' : 'a tough one today'}. What decided it?`, pick(A[res === 'tie' ? 'loss' : res], 'a')], [`${star} stood out. Your thoughts?`, pick(A.star, 'b')]];
+      if (hurt) QA.push([`What is the injury news on ${pnm(hurt)}?`, `${pnm(hurt)} is out ${hurt.injury.gamesRemaining} more game${hurt.injury.gamesRemaining === 1 ? '' : 's'}${hurt.injury.type ? ' with ' + String(hurt.injury.type).toLowerCase() : ''}. We have good depth and the next man will be ready.`]);
+      QA.push([`Looking ahead to ${nextName}?`, pick(A.next, 'c')]);
+      if (gg >= 5 && pct < .4) QA.push(['Coach, your record is ' + (e.won || 0) + '–' + (e.lost || 0) + '. Are you worried about your job?', pick(A.fut, 'd')]); else if (gg >= 5 && pct > .75) QA.push(['You are ' + (e.won || 0) + '–' + (e.lost || 0) + '. Is this the best team you have had?', pick(A.fut, 'd')]);
+      const S = [ident('Press conference'), sc('title', 6500, 'Press conference', `<div class="kick">After the game</div><div class="row" style="gap:3cqw">${C.LZ(tid, 110, y)}<div class="tmc"><div class="mid">${C.esc(cch.name)}</div><div class="sm">Head coach · ${C.esc(cch.style || '')} · ${cch.tenureSeasons || 1} season${cch.tenureSeasons === 1 ? '' : 's'} with ${C.esc(C.nm(tid))}${cch.titles ? ' · ' + cch.titles + ' title' + (cch.titles === 1 ? '' : 's') : ''}</div></div></div><div class="sco" style="font-size:7cqw;margin-top:1.4cqw">${me.pts}<i>–</i>${op.pts}</div><div class="sm">${won ? 'Win' : tie ? 'Tie' : 'Loss'} against ${C.esc(C.nm(op.tid))}</div>`, [[C.H1, `We go now to the press conference with ${cch.name}, head coach of the ${C.nm(tid)}, after a ${me.pts} to ${op.pts} ${won ? 'win' : tie ? 'tie' : 'loss'}.`]])];
+      QA.forEach((qa, k) => S.push(sc('qa' + k, 10000, 'Question ' + (k + 1), `<div class="pod" style="--k:${C.col(tid)}"><div class="bubble" style="max-width:70cqw"><b>Reporter</b>${C.esc(qa[0])}</div><div class="quote">“${C.esc(qa[1])}”<small>${C.esc(cch.name)}</small></div></div>`, [[C.H1, qa[0]], [C.H2, qa[1]]])));
+      S.push(sc('end', 5000, 'Thank you, coach', `<div class="big" style="font-size:6cqw">Thank you, coach</div><div class="sm">${C.esc(cch.name)} · ${C.esc(C.nm(tid))}</div>`, [[C.H1, 'Thank you, coach.']]));
+      return { scenes: S, ticker: 'PRESS CONFERENCE · ' + cch.name.toUpperCase() + ' · ' + C.nm(tid) + ' ' + me.pts + ', ' + C.nm(op.tid) + ' ' + op.pts + ' ·' };
+    }
+  };
+  /* ---- Hall of Fame induction night ---- */
+  modes.hof = {
+    label: 'Hall of Fame night',
+    years: () => { const s = new Set(); C.P.filter(p => p.hof).forEach(p => { const a = (p.awards || []).find(x => /hall of fame/i.test(x.type || '')); const y = a ? a.season : (lastSeason(p) >= 0 ? lastSeason(p) + 5 : null); if (y != null) s.add(y); }); return [...s].sort((a, b) => b - a); },
+    extras: async () => [],
+    build: async y => {
+      const list = C.P.filter(p => p.hof).filter(p => { const a = (p.awards || []).find(x => /hall of fame/i.test(x.type || '')); return a ? a.season === y : lastSeason(p) + 5 === y; }).map(p => ({ p, pk: Math.max(0, ...(p.ratings || []).map(r => r.ovr || 0)), cs: careerSum(p) })).sort((a, b) => b.pk - a.pk).slice(0, 8);
+      const assumed = !C.P.some(p => (p.awards || []).some(x => /hall of fame/i.test(x.type || '')));
+      if (!list.length) return { scenes: [ident('Hall of Fame night'), sc('none', 7000, '', '<div class="kick">Hall of Fame night</div><div class="mid">No inductees for ' + y + '</div>')], ticker: 'Hall of Fame night ·' };
+      const S = [ident('Hall of Fame night'), sc('title', 8000, 'Hall of Fame · class of ' + y, `<div class="kick">Induction ceremony</div><div class="big">Class of ${y}</div><div class="faces" style="gap:2cqw">${list.map(x => `<div class="fcx" style="width:9cqw"><span class="av bronze" data-pid="${x.p.pid}"></span><b>${C.esc(pnm(x.p))}</b></div>`).join('')}</div>${assumed ? '<div class="sm">The save has no induction year: the class is the players who retired five seasons earlier</div>' : ''}`, [[C.H1, `Welcome to the Hall of Fame induction night. The class of ${y} has ${list.length} member${list.length === 1 ? '' : 's'}.`]], { confetti: 1 })];
+      list.forEach((x, k) => { const p = x.p, r = rings(p), seas = (p.stats || []).filter(s => !s.playoffs && s.gp > 0).map(s => s.season), teams = [...new Set((p.stats || []).filter(s => !s.playoffs && s.gp > 0).map(s => s.tid))].filter(t => C.T[t]), mv = (p.awards || []).filter(a => /most valuable|\bmvp\b/i.test(a.type || '') && !/final|super/i.test(a.type || '')).length, aw = (p.awards || []).filter(a => !/hall of fame/i.test(a.type || '')).length;
+        S.push(sc('in' + k, 13000, pnm(p), `<div class="kick">Inductee ${k + 1} of ${list.length}</div><div class="row" style="gap:3cqw"><div class="fbig bronze"><span class="av" data-pid="${p.pid}"></span></div><div class="tmc" style="text-align:left"><div class="mid">${C.esc(pnm(p))}</div><div class="sm">${C.esc(posOf(p, y))} · ${seas.length ? Math.min(...seas) + '–' + Math.max(...seas) : ''} · peak rating ${x.pk}</div><div class="sm">${teams.slice(0, 5).map(t => C.ab(t)).join(' · ')}</div><div class="sm">${C.esc(statLine(x.cs))}</div><div class="sm">${r ? '🏆'.repeat(Math.min(r, 6)) + ' ' + r + ' title' + (r === 1 ? '' : 's') + ' · ' : ''}${mv ? mv + ' MVP' + (mv === 1 ? '' : 's') + ' · ' : ''}${aw} award${aw === 1 ? '' : 's'}</div></div></div>`,
+          [[k % 2 ? C.H2 : C.H1, `${pnm(p)}, ${posOf(p, y)}, ${seas.length} seasons${r ? ', ' + r + ' championship' + (r === 1 ? '' : 's') : ''}. ${statLine(x.cs).split(' · ')[0] || ''}.`], [k % 2 ? C.H1 : C.H2, `Enshrined in the Hall of Fame.`]], { confetti: 1, fan: 'small' })); });
+      S.push(sc('end', 7000, 'Enshrined', `<div class="big" style="font-size:7cqw">Enshrined</div><div class="sm">The class of ${y} joins the Hall of Fame</div>`, [[C.H2, 'Congratulations to the class. Goodnight.']], { confetti: 2, fw: 1 }));
+      return { scenes: S, ticker: 'HALL OF FAME · CLASS OF ' + y + ' · ' + list.map(x => pnm(x.p).toUpperCase()).join(' · ') + ' ·' };
+    }
+  };
+  /* ---- All-Star game ---- */
+  modes.as = {
+    label: 'All-Star game',
+    years: () => [...new Set(C.G.filter(g => g.allStar).map(g => g.season))].sort((a, b) => b - a),
+    extras: async () => [],
+    build: async y => {
+      const g = C.G.find(x => x.allStar && x.season === y && x.teams && x.teams.length === 2);
+      if (!g) return { scenes: [ident('All-Star game'), sc('none', 7000, '', '<div class="kick">All-Star game</div><div class="mid">No All-Star game stored for ' + y + '</div>')], ticker: 'All-Star game ·' };
+      const B = await HubDB.box(g.gid), side = k => B.filter(b => b.tid === g.teams[k].tid), fp = B.map(b => ({ b, p: C.pts(b) })).filter(x => x.p > 0).sort((a, b) => b.p - a.p), W = g.teams[0].pts >= g.teams[1].pts ? 0 : 1, qs = g.teams[0].ptsQtrs && g.teams[1].ptsQtrs ? g.teams : null;
+      const ros = k => side(k).map(b => ({ pid: b.pid, o: (C.byId[b.pid] && (C.byId[b.pid].ratings.slice(-1)[0] || {}).ovr) || 0 })).sort((a, b) => b.o - a.o).slice(0, 10);
+      const card = x => `<div class="fcx"><span class="av" data-pid="${x.pid}"></span><b>${C.esc(C.pn(x.pid))}</b><small>${C.esc(C.byId[x.pid] ? posOf(C.byId[x.pid], y) : '')} · ${C.esc(C.byId[x.pid] ? C.ab(C.byId[x.pid].tid) : '')}</small></div>`;
+      const mvp = fp[0] ? fp[0].b : null, line = b => [b.pssYds ? (b.pssCmp || 0) + '/' + (b.pss || 0) + ', ' + b.pssYds + ' yards' + (b.pssTD ? ', ' + b.pssTD + ' TD' : '') : '', b.rusYds ? (b.rus || 0) + ' carries, ' + b.rusYds + ' yards' : '', b.rec ? b.rec + ' catches, ' + (b.recYds || 0) + ' yards' + (b.recTD ? ', ' + b.recTD + ' TD' : '') : '', b.defSk ? b.defSk + ' sacks' : '', b.defInt ? b.defInt + ' int' : ''].filter(Boolean).join(', ') || 'played';
+      const S = [ident('All-Star game'), sc('title', 7000, 'All-Star game · ' + y, `<div class="kick">The best of the ${y} season</div><div class="big">All-Star game</div><div class="sm">${C.esc(tname(g.teams[0].tid, 0))} vs ${C.esc(tname(g.teams[1].tid, 1))}</div>`, [[C.H1, `Welcome to the ${y} All-Star game, where the best players of the league take the field.`], [C.H2, `No rivalries tonight, just great football.`]], { confetti: 1 }),
+        sc('rosters', 12000, 'The rosters', `<div class="kick">The stars</div><div class="row" style="align-items:flex-start;gap:5cqw"><div class="tmc"><b style="font-size:2cqw">${C.esc(tname(g.teams[0].tid, 0))}</b><div class="faces" style="gap:.8cqw;max-width:42cqw">${ros(0).slice(0, 8).map(card).join('')}</div></div><div class="tmc"><b style="font-size:2cqw">${C.esc(tname(g.teams[1].tid, 1))}</b><div class="faces" style="gap:.8cqw;max-width:42cqw">${ros(1).slice(0, 8).map(card).join('')}</div></div></div>`, [[C.H2, `The stars on both sides include ${ros(0).slice(0, 2).map(x => C.pn(x.pid)).join(' and ')}, and ${ros(1).slice(0, 2).map(x => C.pn(x.pid)).join(' and ')}.`]]),
+        sc('kick', 3600, 'Kickoff', `<div class="sus">Kickoff</div>`, [[C.H1, 'And here we go.']]),
+        sc('final', 10000, 'Final score', `<div class="kick">Final · ${y} All-Star game</div><div class="row" style="margin:1cqw 0"><div class="tmc"><b style="font-size:2.4cqw">${C.esc(tname(g.teams[0].tid, 0))}</b></div><div class="sco"><span class="${W ? 'l' : ''}" id="c1">0</span><i>–</i><span class="${W ? '' : 'l'}" id="c2">0</span></div><div class="tmc"><b style="font-size:2.4cqw">${C.esc(tname(g.teams[1].tid, 1))}</b></div></div>${qs ? '<table class="qt"><tr><th></th>' + qs[0].ptsQtrs.map((_, i) => '<th>' + (i < 4 ? 'Q' + (i + 1) : 'OT') + '</th>').join('') + '<th>T</th></tr>' + qs.map((t, i) => `<tr><td style="text-align:left">${C.esc(tab(t.tid))}${i ? ' B' : ' A'}</td>${t.ptsQtrs.map(v => '<td>' + v + '</td>').join('')}<td><b>${t.pts}</b></td></tr>`).join('') + '</table>' : ''}`, [[C.H1, `${tname(g.teams[W].tid, W)} win the All-Star game, ${g.teams[W].pts} to ${g.teams[1 - W].pts}.`]], { count: [g.teams[0].pts, g.teams[1].pts], confetti: 1 })];
+      if (mvp) S.push(sc('mvp', 10000, 'All-Star MVP', `<div class="sus">The All-Star game MVP</div><div class="fbig"><span class="av" data-pid="${mvp.pid}"></span></div><div class="mid">${C.esc(C.pn(mvp.pid))}</div><div class="sm">${C.esc(line(mvp))}</div>`, [[C.H2, `The most valuable player of the game: ${C.pn(mvp.pid)}.`]], { confetti: 1 }));
+      S.push(sc('end', 6000, 'Goodnight', `<div class="big" style="font-size:7cqw">Goodnight</div><div class="sm">That is the ${y} All-Star game</div>`, [[C.H1, 'Goodnight from the All-Star game.']], { confetti: 2 }));
+      return { scenes: S, ticker: 'ALL-STAR GAME ' + y + ' · ' + tname(g.teams[0].tid, 0) + ' ' + g.teams[0].pts + ', ' + tname(g.teams[1].tid, 1) + ' ' + g.teams[1].pts + ' ·' };
+    }
+  };
+  /* ---- trade-deadline day ---- */
+  modes.td = {
+    label: 'Trade deadline day',
+    years: () => C.allSeasons,
+    extras: async () => [],
+    build: async y => {
+      let E = []; try { E = (await HubDB.idx('events', 'season', y)).filter(e => /trade/i.test(e.type || '')); } catch (e) { E = []; }
+      const ph = E.filter(e => e.phase === 1), use = (ph.length ? ph : E).sort((a, b) => (a.eid || 0) - (b.eid || 0)).slice(-8);
+      const rows = C.teams.map(t => { const s = (t.seasons || []).find(x => x.season === y); const g = s ? (s.won || 0) + (s.lost || 0) + (s.tied || 0) : 0; return { tid: t.tid, w: s ? s.won || 0 : 0, l: s ? s.lost || 0 : 0, pct: g ? ((s.won || 0) + (s.tied || 0) / 2) / g : 0, g }; }).filter(r => r.g > 0).sort((a, b) => b.pct - a.pct);
+      const S = [ident('Trade deadline day'), sc('title', 7500, 'Trade deadline day · ' + y, `<div class="kick">The ${y} season</div><div class="big">Deadline day</div><div class="sm">${E.length} trade${E.length === 1 ? '' : 's'} recorded this season</div>`, [[C.H1, `Welcome to trade deadline day. The clock is ticking and the phones are ringing.`], [C.H2, `${E.length ? 'We have ' + E.length + ' trades on the board this season.' : 'It has been quiet so far.'}`]], { confetti: 1 })];
+      use.forEach((e, k) => { const tids = (e.tids || []).filter(t => C.T[t]), A = tids[0], Bq = tids[1], pids = e.pids || [], text = strip(e.text);
+        const assets = pids.map(pid => C.byId[pid]).filter(Boolean).slice(0, 6).map(p => `<div><b>${C.esc(pnm(p))}</b> ${C.esc(posOf(p, y))} ${((p.ratings || []).slice(-1)[0] || {}).ovr || ''}</div>`).join('');
+        S.push(sc('t' + k, 9500, 'Breaking · trade ' + (k + 1), `<div class="brk">BREAKING NEWS</div><div class="row" style="gap:3cqw;margin-top:1.6cqw">${A != null ? C.LZ(A, 100, y) : ''}<span class="vsx">⇄</span>${Bq != null ? C.LZ(Bq, 100, y) : ''}</div><div class="mid" style="font-size:2.8cqw;margin-top:1cqw">${A != null && Bq != null ? C.esc(C.nm(A)) + ' · ' + C.esc(C.nm(Bq)) : 'Trade'}</div><div class="lst" style="max-width:60cqw">${assets || ''}${(e.dpids || []).length ? '<div><b>' + e.dpids.length + '</b> draft pick' + (e.dpids.length === 1 ? '' : 's') + '</div>' : ''}</div><div class="sm" style="max-width:80cqw">${C.esc(text.slice(0, 220))}</div>`, [[k % 2 ? C.H2 : C.H1, `Breaking news: ${A != null && Bq != null ? C.nm(A) + ' and ' + C.nm(Bq) + ' have agreed to a trade.' : 'a trade has been agreed.'} ${text.slice(0, 160)}`]], { fan: 'small' })); });
+      const buy = rows.slice(0, 5), sell = rows.slice(-5).reverse();
+      if (rows.length >= 6) S.push(sc('bs', 11000, 'Buyers and sellers', `<div class="kick">The standings at the deadline</div><div class="row" style="align-items:flex-start;gap:6cqw"><div class="tmc"><b style="font-size:2.2cqw;color:var(--g1)">Likely buyers</b><div class="lst">${buy.map(r => `<div>${C.esc(C.ab(r.tid))} <b>${r.w}–${r.l}</b></div>`).join('')}</div></div><div class="tmc"><b style="font-size:2.2cqw;color:#ffb3bd">Likely sellers</b><div class="lst">${sell.map(r => `<div>${C.esc(C.ab(r.tid))} <b>${r.w}–${r.l}</b></div>`).join('')}</div></div></div><div class="sm">By record, as of the end of the data</div>`, [[C.H2, `The contenders: ${buy.slice(0, 3).map(r => C.nm(r.tid)).join(', ')}. The sellers: ${sell.slice(0, 3).map(r => C.nm(r.tid)).join(', ')}.`]]));
+      S.push(sc('end', 5000, 'Deadline passes', `<div class="big" style="font-size:7cqw">The deadline passes</div>`, [[C.H1, 'And that is the deadline. Goodnight.']], { confetti: 1 }));
+      return { scenes: S, ticker: 'TRADE DEADLINE DAY ' + y + ' · ' + (use.length ? use.map(e => strip(e.text).slice(0, 60).toUpperCase()).join(' · ') : 'NO TRADES RECORDED') + ' ·' };
+    }
+  };
+  /* ---- retirement ceremonies ---- */
+  modes.rt = {
+    label: 'Retirement ceremonies',
+    years: () => C.allSeasons,
+    extras: async () => [],
+    build: async y => {
+      const ret = C.P.filter(p => p.tid === -3 && lastSeason(p) === y).map(p => ({ p, cs: careerSum(p), pk: Math.max(0, ...(p.ratings || []).map(r => r.ovr || 0)) })).sort((a, b) => b.cs.av - a.cs.av).slice(0, 8);
+      const jr = []; C.teams.forEach(t => (t.retiredJerseyNumbers || []).forEach(r => { if (+r.seasonRetired === y) jr.push({ tid: t.tid, number: r.number, pid: r.pid, text: r.text }); }));
+      if (!ret.length && !jr.length) return { scenes: [ident('Retirement ceremonies'), sc('none', 7000, '', '<div class="kick">Retirement ceremonies</div><div class="mid">No retirements or retired numbers for ' + y + '</div>')], ticker: 'Retirement ceremonies ·' };
+      const jerseyFor = pid => jr.find(x => x.pid === pid);
+      const S = [ident('Retirement ceremonies'), sc('title', 7500, 'Retirement ceremonies · ' + y, `<div class="kick">The ${y} season</div><div class="big">Farewell</div><div class="sm">${ret.length} player${ret.length === 1 ? '' : 's'} retire · ${jr.length} number${jr.length === 1 ? '' : 's'} retired</div>`, [[C.H1, `Tonight we say goodbye to the players who leave the game after the ${y} season.`]])];
+      ret.forEach((x, k) => { const p = x.p, seas = (p.stats || []).filter(s => !s.playoffs && s.gp > 0).map(s => s.season), teams = [...new Set((p.stats || []).filter(s => !s.playoffs && s.gp > 0).map(s => s.tid))].filter(t => C.T[t]), r = rings(p), j = jerseyFor(p.pid), t0 = j ? C.T[j.tid] : null, c1 = t0 && t0.colors ? t0.colors[0] : '#0b6cff';
+        S.push(sc('r' + k, 11000, pnm(p), `<div class="kick">Retiring · ${C.esc(posOf(p, y))}</div><div class="row" style="gap:3cqw"><div class="fbig"><span class="av" data-pid="${p.pid}"></span></div><div class="tmc" style="text-align:left"><div class="mid">${C.esc(pnm(p))}</div><div class="sm">${seas.length} seasons · ${seas.length ? Math.min(...seas) + '–' + Math.max(...seas) : ''} · ${x.cs.gp} games</div><div class="sm">${teams.slice(0, 5).map(t => C.ab(t)).join(' · ')}</div><div class="sm">${C.esc(statLine(x.cs))}</div><div class="sm">${r ? '🏆'.repeat(Math.min(r, 6)) + ' ' + r + ' title' + (r === 1 ? '' : 's') : ''}</div></div>${j ? `<div class="jr" style="--k1:${c1};--k2:${(t0.colors || [])[1] || '#fff'}"><b>${C.esc(j.number)}</b><small>retired</small></div>` : ''}</div>`,
+          [[k % 2 ? C.H2 : C.H1, `${pnm(p)} retires after ${seas.length} seasons${teams.length ? ' with ' + teams.slice(0, 2).map(t => C.nm(t)).join(' and ') : ''}. ${statLine(x.cs).split(' · ')[0] || ''}.`], ...(j ? [[k % 2 ? C.H1 : C.H2, `And ${C.nm(j.tid)} will retire his number ${j.number}.`]] : [])], { confetti: j ? 1 : 0, fan: j ? 'small' : '' })); });
+      jr.filter(j => !ret.some(x => x.p.pid === j.pid)).slice(0, 4).forEach((j, k) => { const p = C.byId[j.pid], t0 = C.T[j.tid], c1 = t0 && t0.colors ? t0.colors[0] : '#0b6cff';
+        S.push(sc('j' + k, 9000, 'Number ' + j.number + ' retired', `<div class="kick">${C.esc(C.nm(j.tid))} retire a number</div><div class="row" style="gap:3cqw">${p ? `<div class="fbig"><span class="av" data-pid="${p.pid}"></span></div>` : ''}<div class="jr" style="--k1:${c1};--k2:${(t0.colors || [])[1] || '#fff'}"><b>${C.esc(j.number)}</b><small>${C.esc(p ? pnm(p) : (j.text || ''))}</small></div></div>`, [[C.H2, `${C.nm(j.tid)} retire number ${j.number}${p ? ' in honor of ' + pnm(p) : ''}.`]], { confetti: 1 })); });
+      S.push(sc('end', 6000, 'Thank you', `<div class="big" style="font-size:7cqw">Thank you</div><div class="sm">For every game</div>`, [[C.H1, 'Thank you for everything. Goodnight.']], { confetti: 1 }));
+      return { scenes: S, ticker: 'RETIREMENT CEREMONIES ' + y + ' · ' + ret.map(x => pnm(x.p).toUpperCase()).join(' · ') + ' ·' };
+    }
+  };
+  /* ---- game replays ---- */
+  const notable = y => {
+    const L = C.G.filter(g => g.season === y && !g.allStar && g.teams && g.teams.length === 2 && g.teams[0].pts != null), out = [], add = (k, g) => { if (g && !out.some(o => o.g.gid === g.gid && o.k === k)) out.push({ k, g }); }, tot = g => g.teams[0].pts + g.teams[1].pts, mg = g => Math.abs(g.teams[0].pts - g.teams[1].pts);
+    const fin = Object.keys(C.FG).map(Number).find(id => C.FG[id].season === y); if (fin) add('Super Bowl', L.find(g => g.gid === fin));
+    add('Highest scoring', L.slice().sort((a, b) => tot(b) - tot(a))[0]); add('Biggest blowout', L.slice().sort((a, b) => mg(b) - mg(a))[0]); add('Closest game', L.filter(g => mg(g) > 0).sort((a, b) => mg(a) - mg(b) || b.gid - a.gid)[0]);
+    const el = C.EL && C.EL.games ? C.EL.games.filter(x => x.season === y && !x.playoffs && x.res !== .5).map(x => ({ x, pw: x.res === 1 ? x.p : 1 - x.p })).sort((a, b) => a.pw - b.pw)[0] : null; if (el) add('Biggest upset', L.find(g => g.gid === el.x.gid));
+    const mine = L.filter(g => g.teams.some(t => t.tid === C.userTid)).sort((a, b) => (b.day || 0) - (a.day || 0))[0]; if (mine) add('Your latest game', mine);
+    return out;
+  };
+  modes.rp = {
+    label: 'Game replay',
+    years: () => C.allSeasons,
+    extras: async y => [{ id: 'game', label: 'Game', options: notable(y).map(o => ({ v: o.g.gid, t: o.k + ' · ' + C.ab(o.g.teams[1].tid) + ' at ' + C.ab(o.g.teams[0].tid) + ' ' + o.g.teams[1].pts + '–' + o.g.teams[0].pts })) }],
+    build: async (y, ex) => {
+      const g = C.G.find(x => x.gid === +ex.game);
+      if (!g) return { scenes: [ident('Game replay'), sc('none', 7000, '', '<div class="kick">Game replay</div><div class="mid">No game for ' + y + '</div>')], ticker: 'Game replay ·' };
+      const H = g.teams[0], Aw = g.teams[1], qs = H.ptsQtrs && Aw.ptsQtrs ? [H.ptsQtrs, Aw.ptsQtrs] : null, B = await HubDB.box(g.gid), fp = B.map(b => ({ b, p: C.pts(b) })).filter(x => x.p > 0).sort((a, b) => b.p - a.p);
+      const ge = C.EL && C.EL.games ? C.EL.games.find(x => x.gid === g.gid) : null, pH = ge ? ge.p : null, Wn = H.pts >= Aw.pts ? H : Aw, Ln = Wn === H ? Aw : H;
+      const ssl = (Array.isArray(g.scoringSummary) ? g.scoringSummary : []).map(x => typeof x === 'string' ? { t: x } : { t: x && (x.text || [x.time, x.type, x.description].filter(Boolean).join(' ')) || '', q: x && x.quarter }).filter(x => x.t);
+      const cum = qs ? qs[0].map((_, i) => [qs[0].slice(0, i + 1).reduce((a, b) => a + b, 0), qs[1].slice(0, i + 1).reduce((a, b) => a + b, 0)]) : [];
+      const S = [ident('Game replay'), sc('title', 7500, 'Game replay', `<div class="kick">${y} season${g.playoffs ? ' · playoffs' : g.day != null ? ' · day ' + g.day : ''}</div><div class="big" style="font-size:7cqw">Game replay</div><div class="row" style="margin-top:1.4cqw">${C.LZ(Aw.tid, 110, y)}<span class="vsx">AT</span>${C.LZ(H.tid, 110, y)}</div>${pH != null ? `<div class="olab">Pre-game win chance · ${C.esc(C.ab(H.tid))} ${Math.round(pH * 100)}% · ${C.esc(C.ab(Aw.tid))} ${Math.round((1 - pH) * 100)}%</div>` : ''}`, [[C.H1, `Let's go back to ${C.nm(Aw.tid)} at ${C.nm(H.tid)}.`], [C.H2, pH != null ? `The model gave the home team ${Math.round(pH * 100)} percent.` : 'Here is how it unfolded.']], { confetti: 0 })];
+      cum.forEach((c, i) => { const q = i < 4 ? 'Q' + (i + 1) : 'OT', plays = ssl.filter(x => x.q != null && +x.q === i + 1).slice(0, 5);
+        S.push(sc('q' + i, 9000, q, `<div class="kick">End of ${q}</div><div class="sco" style="font-size:9cqw">${c[1]}<i>–</i>${c[0]}</div><div class="row" style="gap:6cqw"><div class="tmc"><small>${C.esc(C.ab(Aw.tid))}</small></div><div class="tmc"><small>${C.esc(C.ab(H.tid))}</small></div></div><div class="sm">${C.esc(C.ab(Aw.tid))} ${qs[1][i]} · ${C.esc(C.ab(H.tid))} ${qs[0][i]} in the quarter</div>${plays.length ? '<div class="lst" style="max-width:76cqw;font-size:1.6cqw">' + plays.map(x => '<div>' + C.esc(x.t.slice(0, 120)) + '</div>').join('') + '</div>' : ''}`, [[i % 2 ? C.H2 : C.H1, `End of the ${i < 4 ? ordS(i + 1) + ' quarter' : 'overtime'}: ${C.nm(Aw.tid)} ${c[1]}, ${C.nm(H.tid)} ${c[0]}.`]])); });
+      if (cum.length) { const pts = [[0, 0], ...cum].map((c, i, a) => [i, c[0] - c[1]]), mx = Math.max(10, ...pts.map(p => Math.abs(p[1]))), X = i => 8 + i * (84 / (pts.length - 1)), Y = v => 50 - v / mx * 40;
+        S.push(sc('swing', 10000, 'The swing', `<div class="kick">Margin after each quarter</div><svg viewBox="0 0 100 100" style="width:70cqw;height:30cqw"><line x1="8" x2="92" y1="50" y2="50" stroke="#ffffff55" stroke-dasharray="2 2"/><polyline fill="none" stroke="#f4c542" stroke-width="1.6" points="${pts.map(p => X(p[0]) + ',' + Y(p[1])).join(' ')}"/>${pts.map(p => `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="1.8" fill="#f4c542"/><text x="${X(p[0])}" y="96" font-size="4" fill="#cfc8b4" text-anchor="middle">${p[0] === 0 ? 'Start' : p[0] <= 4 ? 'Q' + p[0] : 'OT'}</text>`).join('')}<text x="3" y="12" font-size="4" fill="#cfc8b4">${C.esc(C.ab(H.tid))} ahead</text><text x="3" y="92" font-size="4" fill="#cfc8b4">${C.esc(C.ab(Aw.tid))} ahead</text></svg>`, [[C.H1, `Here is the margin after every quarter.`]])); }
+      S.push(sc('final', 9000, 'Final score', `<div class="kick">Final</div><div class="row" style="margin:1cqw 0">${C.LZ(Aw.tid, 100, y)}<div class="sco"><span class="${Wn === Aw ? '' : 'l'}" id="c1">0</span><i>–</i><span class="${Wn === H ? '' : 'l'}" id="c2">0</span></div>${C.LZ(H.tid, 100, y)}</div><div class="mid">${C.esc(C.nm(Wn.tid))} win</div>${pH != null && ((pH < .4 && Wn === H) || (pH > .6 && Wn === Aw)) ? '<div class="sm">An upset by the model</div>' : ''}`, [[C.H1, `${C.nm(Wn.tid)} win it, ${Wn.pts} to ${Ln.pts}.`]], { count: [Aw.pts, H.pts], confetti: 1 }));
+      const side = t => fp.filter(x => x.b.tid === t).slice(0, 3).map(x => `<div><b>${C.esc(C.pn(x.b.pid))}</b> ${x.b.pssYds ? x.b.pssYds + ' pass yds' : x.b.rusYds ? x.b.rusYds + ' rush yds' : x.b.recYds ? x.b.recYds + ' rec yds' : x.b.defSk ? x.b.defSk + ' sacks' : ''}</div>`).join('') || '<div>No lines stored</div>';
+      S.push(sc('perf', 10000, 'Top performers', `<div class="kick">Top performers</div><div class="row" style="align-items:flex-start;margin-top:1.2cqw"><div class="tmc">${C.LZ(Aw.tid, 70, y)}<div class="lst">${side(Aw.tid)}</div></div><div class="tmc">${C.LZ(H.tid, 70, y)}<div class="lst">${side(H.tid)}</div></div></div>`, fp[0] ? [[C.H2, `${C.pn(fp[0].b.pid)} led the way.`]] : []));
+      S.push(sc('end', 5000, 'End of replay', `<div class="big" style="font-size:6cqw">End of replay</div>`, [[C.H1, 'That was the game.']]));
+      return { scenes: S, ticker: 'GAME REPLAY · ' + C.nm(Aw.tid) + ' ' + Aw.pts + ' AT ' + C.nm(H.tid) + ' ' + H.pts + ' · ' + y + ' ·' };
+    }
+  };
+  /* ---- insertions into Super Bowl night: halftime show, parade, locker room ---- */
+  function sbExtra(S, X) {
+    const { y, gm, W, L, N, B, mvp, mvpReal } = X, ix = id => S.findIndex(s => s.id === id), qs = gm && gm.teams && gm.teams[0].ptsQtrs && gm.teams[1].ptsQtrs ? gm.teams : null;
+    const vids = C.hf ? C.hf(y) : [], hasQ = !!(qs && qs[0].ptsQtrs.length >= 2);
+    if (hasQ || vids.length) {
+      const h = hasQ ? qs.map(t => t.ptsQtrs[0] + t.ptsQtrs[1]) : null, lead = !h || h[0] === h[1] ? null : h[0] > h[1] ? qs[0].tid : qs[1].tid;
+      const beams = Array.from({ length: 9 }, (_, i) => `<i style="--r:${-60 + i * 15}deg;--d:${(i * .35).toFixed(2)}s"></i>`).join(''), eq = Array.from({ length: 24 }, (_, i) => `<b style="--d:${(i * .07).toFixed(2)}s"></b>`).join('');
+      const vj = JSON.stringify(vids.map(v => ({ id: v.id, start: v.start, title: v.title }))).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
+      const vhalf = vids.length ? sc('half', 0, 'Halftime show', `<div class="kick">Halftime · Super Bowl ${N}</div>${h ? `<div class="sm" style="margin:0 0 1cqw">${lead != null ? C.esc(C.nm(lead)) + ' lead ' + Math.max(...h) + '–' + Math.min(...h) + ' at the half' : 'Tied at ' + h[0] + ' at the half'}</div>` : ''}<div class="hfv" data-v='${vj}'><div class="hfp"><iframe title="Halftime show" allow="autoplay; encrypted-media; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div><div class="hfc">♪ <b class="hft"></b></div><div class="hfs"></div></div><button class="hfgo" type="button">Continue the show ▶</button>`, [[C.H1, `Halftime in Super Bowl ${N}.${h ? (lead != null ? ' ' + C.nm(lead) + ' lead ' + Math.max(...h) + ' to ' + Math.min(...h) + '.' : ' It is tied at ' + h[0] + '.') : ''}`], [C.H2, `And now, the halftime show${vids[0].title ? ': ' + vids[0].title : ''}.`]], { hold: true, fan: 'small' }) : null;
+      const half = vhalf || sc('half', 14000, 'Halftime', `<div class="kick">Halftime · Super Bowl ${N}</div><div class="hs">${beams}</div><div class="row" style="gap:3cqw;position:relative">${C.LZ(qs[0].tid, 80, y)}<div class="sco" style="font-size:9cqw"><span>${h[0]}</span><i>–</i><span>${h[1]}</span></div>${C.LZ(qs[1].tid, 80, y)}</div><div class="mid" style="font-size:3cqw;position:relative">${lead != null ? C.esc(C.nm(lead)) + ' lead at the half' : 'All square at the half'}</div><div class="eq">${eq}</div><div class="sm" style="position:relative">The FBGM Halftime Show · lights, music and a stadium on its feet</div>`,
+        [[C.H1, `Halftime in Super Bowl ${N}. ${lead != null ? C.nm(lead) + ' lead ' + Math.max(...h) + ' to ' + Math.min(...h) + '.' : 'It is tied at ' + h[0] + '.'}`], [C.H2, `And now, the halftime show.`]], { fan: 'small', fw: 1 });
+      const k = ix('kick'); S.splice(k >= 0 ? k + 1 : S.length - 4, 0, half);
+    }
+    const cch = coachAt(W, y), titleNo = Object.values(C.FG).filter(f => f.w === W && f.season <= y).length, prevT = Object.values(C.FG).filter(f => f.w === W && f.season < y).map(f => f.season).sort((a, b) => b - a)[0], cities = C.T[W] ? C.T[W].region : '';
+    const sky = Array.from({ length: 26 }, (_, i) => `<i style="height:${10 + (hash('s' + W + i) % 40)}%;width:${2 + (hash('w' + W + i) % 3)}cqw"></i>`).join(''), roster = (B || []).filter(b => b.tid === W).map(b => ({ pid: b.pid, p: C.pts(b) })).sort((a, b) => b.p - a.p).slice(0, 14);
+    const parade = sc('parade', 14000, 'The parade', `<div class="kick">The parade</div><div class="mid" style="font-size:4.4cqw">${C.esc(cities)} celebrates</div><div class="sky">${sky}</div><div class="float"><div class="faces" style="flex-wrap:nowrap;gap:1.2cqw;margin:0">${roster.map(x => `<div class="fcx"><span class="av" data-pid="${x.pid}"></span><b>${C.esc(C.pn(x.pid))}</b><small>${C.esc(C.byId[x.pid] && C.byId[x.pid].jerseyNumber ? '#' + C.byId[x.pid].jerseyNumber : '')}</small></div>`).join('')}</div></div><div class="sm" style="position:relative">${titleNo === 1 ? 'The first title in franchise history' : 'Title number ' + titleNo + (prevT != null ? ' · the last was ' + prevT : '')}</div>`,
+      [[C.H2, `The city turns out. ${C.nm(W)} ${titleNo === 1 ? 'win the first championship in their history' : 'win title number ' + titleNo}${prevT != null && titleNo > 1 ? ', after the one in ' + prevT : ''}.`], [C.H1, `Streets full of fans and a trophy held high.`]], { confetti: 2, fan: 'big' });
+    const A = answers(cch.style), pk = a => pickBy(a, X.gid + 'lk'), mvpName = mvp != null ? C.pn(mvp) : 'our guys';
+    const quote = (pk(A.win)).replace('{team}', C.nm(W)), bubbles = Array.from({ length: 22 }, (_, i) => `<i style="left:${(hash('b' + i) % 96)}%;--d:${((hash('d' + i) % 30) / 10).toFixed(1)}s;--s:${1 + (hash('z' + i) % 4)}cqw"></i>`).join('');
+    const locker = sc('locker', 15000, 'The locker room', `<div class="kick">The locker room</div><div class="bub">${bubbles}</div><div class="row" style="gap:3cqw;position:relative">${C.LZ(W, 90, y)}<div class="tmc" style="text-align:left"><div class="mid" style="font-size:3.4cqw">${C.esc(cch.name)}</div><div class="sm">Head coach · ${C.esc(cch.style || '')}${cch.titles ? ' · title no. ' + cch.titles + ' with the team' : ''}</div></div></div><div class="quote" style="position:relative">“${C.esc(quote)}”<small>${C.esc(cch.name)}</small></div>${mvp != null ? `<div class="sm" style="position:relative">Game ball: ${C.esc(mvpName)}${mvpReal ? ' · MVP' : ''}</div>` : ''}`,
+      [[C.H1, `Inside the locker room, the champagne is flowing.`], [C.H2, `${cch.name} told us: ${quote}`]], { confetti: 1, fan: 'small' });
+    const t = ix('trophy'); if (t >= 0) { S.splice(t + 1, 0, parade, locker); } else S.push(parade, locker);
+    return S;
+  }
+  const api = { init: c => { C = c; return api; }, modes, sbExtra, coachAt, ANS };
+  if (typeof module !== 'undefined') module.exports = api; else root.TVPacks = api;
+})(typeof self !== 'undefined' ? self : this);

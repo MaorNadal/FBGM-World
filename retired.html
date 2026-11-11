@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Retired numbers · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>.wall{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.jr{position:relative;background:linear-gradient(180deg,var(--k1),color-mix(in srgb,var(--k1) 55%,#000));border-radius:14px 14px 8px 8px;padding:12px 8px 10px;text-align:center;color:var(--ki);border:2px solid var(--k2);box-shadow:0 10px 24px #0007;overflow:hidden}.jr:before{content:"";position:absolute;left:50%;top:-14px;width:46px;height:30px;margin-left:-23px;background:var(--bg);border-radius:0 0 30px 30px}.jr .no{font-size:54px;font-weight:900;line-height:1;margin-top:14px;letter-spacing:-.02em;text-shadow:0 2px 0 #0005}.jr .nm{font-size:14px;font-weight:800;margin-top:4px;line-height:1.15}.jr small{display:block;opacity:.8;font-size:11px;margin-top:2px}.jr .av{margin:6px auto 0}.jr .lg{margin:6px auto 0;display:block}.tr{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}.tr a{display:block;background:var(--bg3);border-radius:14px;padding:10px;text-align:center;border-top:3px solid var(--c2)}.tr b{display:block;font-size:22px;color:var(--c2)}.tr span{font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.06em}.cup{font-size:30px;line-height:1}</style></head><body>
+<main class="wrap"><div class="hero"><small>Team</small><h1>Retired numbers</h1><p id="sub">Loading…</p></div>
+<div class="card"><div class="ctl"><div><label for="t">Team</label><select id="t"></select></div></div></div>
+<div class="card"><h2 id="wh">Wall</h2><div class="wall" id="wall"></div></div>
+<div class="card"><h2 id="th">Trophy room</h2><div class="tr" id="tr"></div></div>
+<div class="card"><h2>Retired numbers across the league</h2><div id="all"></div></div></main>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="metrics.js"></script><script src="rivals.js"></script><script src="leaguedata.js"></script><script src="faces.js"></script><script src="viz.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),V=Viz,esc=V.esc;const s=await HubDB.summary();
+if(!s){$('wall').innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+Hub.setTitle('Retired numbers');
+try{const teams=(await LeagueData.teams()).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name));Logo.init(teams);const T=Object.fromEntries(teams.map(t=>[t.tid,t]));
+ const games=await LeagueData.games(),info=FBGMRivals.seasonsInfo(teams,games,s.season),titles={};info.forEach(i=>{if(i.champion)(titles[i.champion.tid]=titles[i.champion.tid]||[]).push(i)});
+ const R=t=>Array.isArray(t.retiredJerseyNumbers)?t.retiredJerseyNumbers:[],total=teams.reduce((a,t)=>a+R(t).length,0);
+ $('t').innerHTML=teams.map(t=>`<option value="${t.tid}">${esc((t.region+' '+t.name).trim())} · ${R(t).length}</option>`).join('');
+ const h=+location.hash.slice(1);$('t').value=T[h]?h:(T[s.userTid]?s.userTid:teams[0].tid);
+ const hx=(c,d)=>/^#[0-9a-f]{6}$/i.test(c||'')?c:d,tx=c=>Hub.ink(c);
+ async function draw(){const tid=+$('t').value,t=T[tid],rs=R(t).slice().sort((a,b)=>(+a.seasonRetired||0)-(+b.seasonRetired||0)||String(a.number).localeCompare(String(b.number),undefined,{numeric:true}));
+  const c1=hx((t.colors||[])[0],'#0b6cff'),c2=hx((t.colors||[])[1],'#ffb81c');
+  $('sub').textContent=total+' retired numbers in the league · '+(t.region+' '+t.name).trim()+': '+rs.length;
+  $('wh').textContent='Wall · '+(t.region+' '+t.name).trim();
+  const pids=rs.map(r=>r.pid).filter(x=>x!=null),P={};for(const pid of pids){try{const p=await HubDB.get('players',pid);if(p)P[pid]=p}catch(e){}}
+  $('wall').innerHTML=rs.length?rs.map(r=>{const p=P[r.pid],nm=p?((p.firstName||'')+' '+(p.lastName||'')).trim():(r.text||'');return`<${p?'a href="player.html?pid='+r.pid+'"':'div'} class="jr" style="--k1:${c1};--k2:${c2};--ki:${tx(c1)}"><div class="no">${esc(r.number)}</div><div class="nm">${esc(nm)}</div><small>${r.seasonRetired?'retired '+esc(r.seasonRetired):''}</small>${p?`<span class="av" data-pid="${r.pid}"></span>`:''}</${p?'a':'div'}>`}).join(''):'<p class="mu">This team has no retired numbers stored in the save.</p>';
+  const tt=titles[tid]||[];$('th').textContent='Trophy room · '+tt.length+' title'+(tt.length===1?'':'s');
+  $('tr').innerHTML=tt.length?tt.slice().sort((a,b)=>b.season-a.season).map(i=>`<a href="game.html?gid=${i.champion.gid}"><span class="cup">🏆</span><b>${i.season}</b><span>beat ${esc((T[i.champion.opp]||{}).abbrev||'')} ${i.champion.score[0]}–${i.champion.score[1]}</span></a>`).join(''):'<p class="mu">No titles for this team in the stored seasons.</p>';
+  Faces.lazy($('wall'),pid=>(P[pid]||{}).face,()=>t)}
+ V.bars($('all'),teams.filter(t=>R(t).length).map(t=>({id:t.tid,label:(t.region+' '+t.name).trim(),value:R(t).length,c1:(t.colors||[])[0],logo:Logo.t(t.tid,22),href:'#'+t.tid})),{top:32,fmt:v=>String(v)});
+ $('t').onchange=draw;window.addEventListener('hashchange',()=>{const n=+location.hash.slice(1);if(T[n]){$('t').value=n;draw()}});await draw()
+}catch(e){$('wall').innerHTML='<div class="card err"><b>Could not build the page.</b><p class="mu">'+Viz.esc(e.message)+'</p></div>';console.error(e)}})()</script></body></html>
