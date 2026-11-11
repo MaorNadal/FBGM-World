@@ -57,3 +57,8 @@ tbody tr:hover td,table tr:hover td{background:#ffffff08}
 .vhs{overflow:auto;max-height:640px}.vheat table{border-collapse:separate;border-spacing:2px;font-size:12px;width:auto;min-width:100%}.vheat th{position:sticky;top:0;background:var(--bg2);z-index:2;padding:4px 6px;font-size:11px}.vheat td{padding:5px 6px;text-align:center;border:0;border-radius:6px;min-width:44px;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 1px 2px #0008}.vheat td.vhl{position:sticky;left:0;background:var(--bg2);text-align:left;white-space:nowrap;z-index:1;text-shadow:none;padding-right:12px}.vheat td.vhl b{font-weight:600;margin-left:6px}.vheat td.vha{font-weight:800;background:var(--bg3)}.vheat tr.sel td.vhl{outline:2px solid var(--c2)}.vheat tr{cursor:pointer}
 .vhk{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vhk i{display:inline-block;width:120px;height:10px;border-radius:9px;background:linear-gradient(90deg,#ff5468,#233349,#27d17f)}
 .vrl2{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:6px;font-size:13px}.vrl2 i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+/* HR-1: hero text never runs under the right-edge decoration or the face crop (player pages) */
+.hero>small,.hero>h1,.hero>p{padding-right:128px;box-sizing:border-box}
+@media(max-width:480px){.hero>small,.hero>h1,.hero>p{padding-right:96px}}
+/* CK-1: a checkbox or radio must not take the size of a text field (it covered the text beside it) */
+input[type=checkbox],input[type=radio]{width:auto;min-height:0;max-width:none;padding:0;flex:none;border-radius:4px;accent-color:var(--c2)}

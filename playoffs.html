@@ -7,23 +7,28 @@ select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1
 .road{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.road a{display:inline-flex;gap:6px;align-items:center;background:var(--bg3);border-radius:99px;padding:4px 12px 4px 6px;font-size:13px}.road a b{color:var(--ok)}.road em{font-style:normal;color:var(--mu);font-size:11px}
 </style></head><body>
 <main class="wrap"><div class="hero"><small>League</small><h1>Playoff bracket</h1><p id="sub">Loading…</p></div><div class="card"><select id="y"></select></div><div id="ch"></div><div class="rd" id="out"></div><div id="er"></div></main>
-<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="statsagg.js"></script><script src="viz.js"></script>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="statsagg.js"></script><script src="transform.js"></script><script src="tiebreak.js"></script><script src="standview.js"></script><script src="viz.js"></script>
 <script>(async()=>{const $=i=>document.getElementById(i),o=$('out'),esc=Viz.esc;const s=await HubDB.summary();
 if(!s){o.innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
 const teams=await HubDB.all('teams');Logo.init(teams);const T=Object.fromEntries(teams.map(t=>[t.tid,t])),G=await HubDB.all('games');
+const ga=((await HubDB.get('meta','gameAttributes'))||{}).v||{},AT=FBGMTransform.attr;let SD={};
 const nm=t=>T[t]?(T[t].region+' '+T[t].name).trim():'Team '+t,ab=t=>T[t]?T[t].abbrev||t:t;
 const real=g=>g.teams.every(x=>T[x.tid]);
 const ys=[...new Set(G.filter(g=>g.playoffs&&!g.allStar).map(g=>g.season))].sort((a,b)=>b-a);$('y').innerHTML=ys.map(x=>`<option>${x}</option>`).join('');
 const rn=(i,n)=>i===n-1?'Final':i===n-2&&n>2?'Semifinals':i===n-3&&n>3?'Quarterfinals':'Round '+(i+1);
 const win=g=>g.teams[0].pts>g.teams[1].pts?g.teams[0].tid:g.teams[1].pts>g.teams[0].pts?g.teams[1].tid:null;
 function gameCard(g,fin){try{const w=g.teams[0].pts>g.teams[1].pts?0:g.teams[1].pts>g.teams[0].pts?1:-1;
- return `<a class="mu2 ${fin?'fin':''}" href="game.html?gid=${g.gid}">${g.teams.map((x,k)=>`<div class="tm ${w===k?'w':w<0?'':'l'}">${Logo.t(x.tid,24)}<span>${esc(ab(x.tid))}</span><b>${x.pts}</b></div>`).join('')}</a>`}catch(e){return `<div class="mu2"><small class="mu">Game ${g.gid} could not be drawn</small></div>`}}
-function draw(){const y=+$('y').value;Hub.setTitle(y);let R=[];$('er').innerHTML='';
+ return `<a class="mu2 ${fin?'fin':''}" href="game.html?gid=${g.gid}">${g.teams.map((x,k)=>`<div class="tm ${w===k?'w':w<0?'':'l'}">${Logo.t(x.tid,24)}<span>${SD[x.tid]?'<small>#'+SD[x.tid]+'</small> ':''}${esc(ab(x.tid))}</span><b>${x.pts}</b></div>`).join('')}</a>`}catch(e){return `<div class="mu2"><small class="mu">Game ${g.gid} could not be drawn</small></div>`}}
+/* PO-1: seeds = place in the regular season under the league's tiebreakers (tiebreak.js, as on the Playoff picture); a bye card lists the teams that skipped round one */
+function seedsOf(y){try{const A=AT,r=(()=>{const v=A(ga.numGamesPlayoffSeries,y);return Array.isArray(v)?v.length:null})(),b=+A(ga.numPlayoffByes,y)||0,bc=A(ga.playoffsByConf,y),V=FBGMStandView.view(teams,G.filter(g=>g.season===y),y,{confs:A(ga.confs,y)||[],divs:A(ga.divs,y)||[],tiebreakers:A(ga.tiebreakers,y),nPlayoff:r?Math.pow(2,r)-b:14,byes:b,byConf:bc===true}),o={};for(const t in V.row)if(V.row[t].seed&&V.row[t].in)o[t]=V.row[t].seed;return o}catch(e){console.error(e);return{}}}
+function draw(){const y=+$('y').value;Hub.setTitle(y);let R=[];$('er').innerHTML='';SD=seedsOf(y);
  try{R=FBGMStatsAgg.rounds(G,y).map(r=>r.filter(real)).filter(r=>r.length);
   $('sub').textContent=y+' · '+R.length+' rounds · '+R.reduce((a,r)=>a+r.length,0)+' games';
   const fin=R.length?R[R.length-1][0]:null,wt=fin?win(fin):null;
   if(wt!=null){const road=R.map((r,i)=>{const g=r.find(x=>x.teams.some(t=>t.tid===wt));if(!g)return'';const m=g.teams.find(t=>t.tid===wt),op=g.teams.find(t=>t.tid!==wt);return `<a href="game.html?gid=${g.gid}">${Logo.t(op.tid,20)}<span>${rn(i,R.length)} <em>${m.pts>op.pts?'beat':'lost to'}</em> ${esc(ab(op.tid))}</span><b>${m.pts}-${op.pts}</b></a>`}).join('');
    $('ch').innerHTML=`<div class="card champ" style="--k:${(T[wt].colors||[])[0]||'#0b6cff'}">${Logo.t(wt,72,y)}<div style="flex:1"><small>${y} champions</small><div class="nm">${esc(nm(wt))}</div><div class="road">${road}</div></div></div>`}else $('ch').innerHTML='';
-  o.innerHTML=R.map((r,i)=>`<div class="col"><h2>${rn(i,R.length)}</h2><div class="gs">${r.map(g=>gameCard(g,i===R.length-1)).join('')}</div></div>`).join('')||'<div class="card"><p>No playoff games found for this season.</p></div>'
+  const first=new Set(R.length?R[0].flatMap(g=>g.teams.map(t=>t.tid)):[]),bye=R.length>1?[...new Set(R[1].flatMap(g=>g.teams.map(t=>t.tid)))].filter(t=>!first.has(t)).sort((a,b)=>(SD[a]||99)-(SD[b]||99)):[],
+  byeCard=bye.length?`<div class="mu2" style="border-style:dashed"><small class="mu">First-round bye</small>${bye.map(t=>`<a class="tm" href="team.html#${t}">${Logo.t(t,24,y)}<span>${SD[t]?'<small>#'+SD[t]+'</small> ':''}${esc(nm(t))}</span></a>`).join('')}</div>`:'';
+  o.innerHTML=R.map((r,i)=>`<div class="col"><h2>${rn(i,R.length)}</h2><div class="gs">${r.map(g=>gameCard(g,i===R.length-1)).join('')}${i===0?byeCard:''}</div></div>`).join('')||'<div class="card"><p>No playoff games found for this season.</p></div>'
  }catch(e){o.innerHTML='';$('er').innerHTML='<div class="card err"><b>The bracket could not be drawn.</b><p class="mu">'+esc(e.message)+'</p></div>';console.error(e)}}
 $('y').onchange=draw;draw()})()</script></body></html>

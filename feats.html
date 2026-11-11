@@ -1,32 +1,77 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Statistical feats · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>.sc{overflow-x:auto}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}td{white-space:nowrap}.ln{display:flex;flex-wrap:wrap;gap:4px}.ln span{background:var(--bg3);border-radius:8px;padding:1px 8px;font-size:12px}.ln b{color:var(--c2)}.tg{display:inline-block;border-radius:99px;padding:0 9px;font-size:11px;font-weight:800;background:#ffb81c33;color:var(--c2)}.fc{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}.fc a{display:block;background:var(--bg3);border-radius:14px;padding:12px;border-top:3px solid var(--c2)}.fc span{color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.fc b{display:block;font-size:18px;line-height:1.2}.fc .av{margin:0 8px 0 0}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Statistical feats · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>
+.sc{overflow-x:auto}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}td{white-space:nowrap}
+.ln{display:flex;flex-wrap:wrap;gap:4px}.ln span{background:var(--bg3);border-radius:8px;padding:1px 8px;font-size:12px;white-space:nowrap}.ln b{color:var(--c2)}.ln span.hot{background:var(--c2);color:#111}.ln span.hot b{color:#111}
+.tg{display:inline-block;border-radius:99px;padding:0 9px;font-size:11px;font-weight:800;background:#ffb81c33;color:var(--c2)}
+.ftop{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr))}
+.ftop>a{display:block;min-width:0;overflow:hidden;background:var(--bg3);border-radius:14px;padding:12px;border-top:3px solid var(--c2);position:relative}
+.ftop>a .rk{position:absolute;right:10px;top:6px;font:800 26px/1 system-ui;opacity:.18}
+.ftop>a>span{color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.ftop>a>b{display:flex;align-items:center;gap:8px;font-size:15px;margin:6px 0;min-width:0}.ftop>a>b em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ftop .res{font-weight:800;margin:2px 0 6px}.W{color:#4ade80}.L{color:#f87171}
+.av{display:inline-block;width:38px;height:50px;flex:none;border-radius:8px;overflow:hidden;background:#ffffff12}
+.ldr{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.ldr>div{display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:12px;padding:8px 10px;min-width:0}
+.ldr .n1{font:800 20px/1 system-ui;width:30px;text-align:center;opacity:.6;flex:none}.ldr .nm{flex:1;min-width:0}.ldr .nm a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}.ldr .nm small{color:var(--mu)}
+.ldr .ct{font:800 22px/1 system-ui;color:var(--c2);flex:none}.ldr .me{outline:2px dashed var(--c2)}
+.srch{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}.srch input{flex:1;min-width:180px}
+#pop{position:fixed;z-index:50;width:min(320px,92vw);background:var(--bg2,#14213a);border:1px solid var(--c2);border-radius:14px;padding:12px;box-shadow:0 10px 30px #000a;pointer-events:none;display:none}
+#pop .hd{display:flex;gap:10px;align-items:center;margin-bottom:8px}#pop .hd .av{width:46px;height:60px}#pop b{font-size:15px}#pop small{color:var(--mu);display:block}
+th.sortable{cursor:pointer;user-select:none}th.sortable:hover{color:var(--c2)}
+</style></head><body>
 <main class="wrap"><div class="hero"><small>Stats</small><h1>Statistical feats</h1><p id="sub">Loading…</p></div>
-<div class="card"><div class="ctl"><div><label for="y">Season</label><select id="y"></select></div><div><label for="t">Team</label><select id="t"></select></div><div><label for="k">Kind</label><select id="k"><option value="">All kinds</option><option value="pass">Passing</option><option value="rush">Rushing</option><option value="rec">Receiving</option><option value="def">Defence</option></select></div><div><label for="p">Games</label><select id="p"><option value="">Regular season and playoffs</option><option value="r">Regular season</option><option value="p">Playoffs</option></select></div></div><p class="mu" style="margin-bottom:0">Notable single-game performances stored in the save (the game's own list). The score is the game's rating of the feat, shown as stored.</p></div>
-<div class="card"><h2>Best feats</h2><div class="fc" id="top"></div></div>
+<div class="card"><div class="ctl"><div><label for="y">Season</label><select id="y"></select></div><div><label for="t">Team</label><select id="t"></select></div><div><label for="k">Kind</label><select id="k"><option value="">All kinds</option><option value="pass">Passing</option><option value="rush">Rushing</option><option value="rec">Receiving</option><option value="def">Defence</option></select></div><div><label for="p">Games</label><select id="p"><option value="">Regular season and playoffs</option><option value="r">Regular season</option><option value="p">Playoffs</option></select></div><div><label for="o">Sort by</label><select id="o"></select></div><div><label for="d">Order</label><select id="d"><option value="desc">High to low</option><option value="asc">Low to high</option></select></div></div><p class="mu" style="margin-bottom:0">Notable single-game performances stored in the save (the game's own list). The game stores the result of the game with each feat; the ranking figure is computed from the stat line (fantasy-style points) because the save has no rating of its own. Hover a player for the details.</p></div>
+<div class="card"><h2>Best feats</h2><div class="ftop" id="top"></div></div>
+<div class="card"><h2>Leading players</h2><p class="mu" id="ldn" style="margin-top:0"></p><div class="ldr" id="ldr"></div>
+<div class="srch"><input id="q" type="search" list="ql" placeholder="Find a player (his place in the feats ranking)" aria-label="Find a player"><datalist id="ql"></datalist></div><div class="ldr" id="qr" style="margin-top:8px"></div></div>
 <div class="card"><h2>Feats by team</h2><div id="bt"></div></div>
-<div class="card sc" id="out"></div></main>
-<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="metrics.js"></script><script src="leaguedata.js"></script><script src="faces.js"></script><script src="viz.js"></script>
-<script>(async()=>{const $=i=>document.getElementById(i),V=Viz,esc=V.esc;const s=await HubDB.summary();
+<div class="card sc" id="out"></div></main><div id="pop" role="tooltip"></div>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="metrics.js"></script><script src="leaguedata.js"></script><script src="faces.js"></script><script src="viz.js"></script><script src="feats.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),V=Viz,esc=V.esc,FF=FBGMFeats;const s=await HubDB.summary();
 if(!s){$('out').innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
 Hub.setTitle('Feats');
-const LAB={pssCmp:'cmp',pss:'att',pssYds:'pass yds',pssTD:'pass TD',pssInt:'int',pssSk:'sacked',rus:'car',rusYds:'rush yds',rusTD:'rush TD',rec:'rec',recYds:'rec yds',recTD:'rec TD',tgt:'tgt',defTckSolo:'solo tkl',defTckAst:'ast tkl',defTck:'tkl',defSk:'sacks',defInt:'int',defFmbFrc:'forced fum',defFmbRec:'fum rec',fmbLost:'fum lost',defTckLoss:'TFL',defPssDef:'pass def',defSft:'safeties',defTD:'def TD',krYds:'kr yds',prYds:'pr yds',fgm:'fg',fga:'fg att',xpm:'xp',pnt:'punts',pntYds:'punt yds'};
-const kind=st=>{const k=Object.keys(st||{}).filter(x=>st[x]);return k.some(x=>/^pss/.test(x)&&x!=='pssSk')?'pass':k.some(x=>/^rus/.test(x))?'rush':k.some(x=>/^rec|^tgt/.test(x))?'rec':k.some(x=>/^def/.test(x))?'def':''};
 try{const teams=(await LeagueData.teams()).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name));Logo.init(teams);const T=Object.fromEntries(teams.map(t=>[t.tid,t]));
  const F=(await HubDB.all('misc')).filter(r=>r.src==='playerFeats'&&r.v).map(r=>r.v);
  if(!F.length){$('sub').textContent='No feats in this save';$('out').innerHTML='<p class="mu">The save holds no statistical-feats records (the playerFeats collection is empty or missing).</p>';return}
  const pids=new Set(F.map(f=>f.pid).filter(x=>x!=null)),P={};(await HubDB.scan('players',p=>pids.has(p.pid))).forEach(p=>P[p.pid]=FBGMMetrics.slim(p));
  const nm=f=>f.name||(P[f.pid]?((P[f.pid].firstName||'')+' '+(P[f.pid].lastName||'')).trim():'Player '+f.pid);
+ const pname=pid=>{const f=F.find(x=>x.pid===pid);return f?nm(f):(P[pid]?((P[pid].firstName||'')+' '+(P[pid].lastName||'')).trim():'Player '+pid)};
+ F.forEach((f,i)=>f._i=i);
  const ys=[...new Set(F.map(f=>f.season))].filter(x=>x!=null).sort((a,b)=>b-a);$('y').innerHTML='<option value="">All seasons</option>'+ys.map(y=>`<option>${y}</option>`).join('');
  $('t').innerHTML='<option value="">All teams</option>'+teams.map(t=>`<option value="${t.tid}">${esc((t.region+' '+t.name).trim())}</option>`).join('');
- const line=st=>'<div class="ln">'+Object.keys(st||{}).filter(k=>st[k]).map(k=>`<span><b>${(+st[k]%1?(+st[k]).toFixed(1):st[k])}</b> ${esc(LAB[k]||k)}</span>`).join('')+'</div>';
- let L=[];
- function draw(){const y=$('y').value,t=$('t').value,k=$('k').value,p=$('p').value;
-  L=F.filter(f=>(!y||f.season===+y)&&(!t||f.tid===+t)&&(!k||kind(f.stats)===k)&&(!p||(p==='p')===!!f.playoffs)).sort((a,b)=>(b.score||0)-(a.score||0)||(b.season||0)-(a.season||0));
+ const rs=f=>{const r=FF.result(f);return r?`<span class="${r[0]==='W'?'W':r[0]==='L'?'L':''}">${esc(r)}</span>`:'–'};
+ const line=(f,hot)=>'<div class="ln">'+FF.line(f.stats).map(e=>`<span class="${e.k===hot?'hot':''}"><b>${e.v%1?e.v.toFixed(1):e.v}</b> ${esc(e.label)}</span>`).join('')+'</div>';
+ const tm=(tid,y)=>tid!=null&&T[tid]?Logo.t(tid,18,y)+' '+esc(T[tid].abbrev||''):'';
+ let L=[],OK='value';
+ /* hover card */
+ const pop=$('pop');
+ const showPop=(f,ev)=>{const t=T[f.tid]||{},p=P[f.pid]||{},r=(p.ratings&&p.ratings.length)?p.ratings[p.ratings.length-1]:null;
+  pop.innerHTML=`<div class="hd"><span class="av" data-pid="${f.pid}"></span><div><b>${esc(nm(f))}</b><small>${r?esc(r.pos||'')+' · ':''}${esc(t.abbrev||'')} · ${f.season||''}${f.playoffs?' · playoffs':''}</small></div></div><div>vs ${f.oppTid!=null?tm(f.oppTid,f.season):'–'} · ${rs(f)}</div><div style="margin:6px 0">${line(f)}</div><small>Feat value ${FF.value(f.stats).toFixed(1)}${FF.rating(f)!=null?' · game rating '+FF.rating(f).toFixed(1):''}${f.gid!=null?' · click for the box score':''}</small>`;
+  Faces.lazy(pop,pid=>(P[pid]||{}).face,pid=>T[(P[pid]||{}).tid]);pop.style.display='block';movePop(ev)};
+ const movePop=ev=>{const w=pop.offsetWidth,h=pop.offsetHeight;let x=ev.clientX+16,y=ev.clientY+16;if(x+w>innerWidth-8)x=ev.clientX-w-16;if(x<8)x=8;if(y+h>innerHeight-8)y=innerHeight-h-8;if(y<8)y=8;pop.style.left=x+'px';pop.style.top=y+'px'};
+ document.addEventListener('mouseover',e=>{const a=e.target.closest&&e.target.closest('[data-i]');if(a&&F[+a.dataset.i])showPop(F[+a.dataset.i],e);else if(!e.target.closest||!e.target.closest('#pop'))pop.style.display='none'});
+ document.addEventListener('mousemove',e=>{if(pop.style.display==='block')movePop(e)});
+ function sortOpts(base){const keys=FF.sortKeys(base),cur=$('o').value||'value';$('o').innerHTML='<option value="value">Feat value (points)</option><option value="season">Season</option>'+keys.map(k=>`<option value="${k}">${esc(FF.LAB[k]||k)}</option>`).join('');$('o').value=[...$('o').options].some(o=>o.value===cur)?cur:'value'}
+ function base(){const y=$('y').value,t=$('t').value,k=$('k').value,p=$('p').value;return F.filter(f=>(!y||f.season===+y)&&(!t||f.tid===+t)&&(!k||FF.kind(f.stats)===k)&&(!p||(p==='p')===!!f.playoffs))}
+ function draw(keepSort){const B=base();if(!keepSort)sortOpts(B);OK=$('o').value;L=B.slice().sort(FF.sorter(OK,$('d').value));
   $('sub').textContent=F.length.toLocaleString('en-US')+' feats in the save · '+L.length.toLocaleString('en-US')+' shown';
-  $('top').innerHTML=L.slice(0,6).map(f=>`<a href="${f.gid!=null?'game.html?gid='+f.gid:'player.html?pid='+f.pid}"><span>${f.season||''}${f.playoffs?' · playoffs':''} · score ${f.score!=null?(+f.score).toFixed(1):'–'}</span><b><span class="av" data-pid="${f.pid}"></span>${esc(nm(f))}</b>${Logo.t(f.tid,18,f.season)} ${esc((T[f.tid]||{}).abbrev||'')}${f.oppTid!=null?' vs '+esc((T[f.oppTid]||{}).abbrev||''):''}${line(f.stats)}</a>`).join('')||'<p class="mu">Nothing for this choice.</p>';
+  $('top').innerHTML=L.slice(0,6).map((f,i)=>`<a data-i="${f._i}" href="${f.gid!=null?'game.html?gid='+f.gid:'player.html?pid='+f.pid}"><i class="rk">${i+1}</i><span>${f.season||''}${f.playoffs?' · playoffs':''}</span><b><span class="av" data-pid="${f.pid}"></span><em>${esc(nm(f))}</em></b><div class="res">${tm(f.tid,f.season)} ${f.oppTid!=null?' vs '+tm(f.oppTid,f.season):''} · ${rs(f)}</div>${line(f,OK)}</a>`).join('')||'<p class="mu">Nothing for this choice.</p>';
   const by={};L.forEach(f=>by[f.tid]=(by[f.tid]||0)+1);
   V.bars($('bt'),Object.keys(by).filter(x=>T[x]).map(x=>({id:+x,label:(T[x].region+' '+T[x].name).trim(),value:by[x],c1:(T[x].colors||[])[0],logo:Logo.t(+x,22),href:'team.html#'+x})),{top:12,fmt:v=>String(v)});
-  $('out').innerHTML='<table><tr><th>Player</th><th>Team</th><th>Opponent</th><th class="n">Season</th><th>Stat line</th><th class="n">Score</th><th></th></tr>'+L.slice(0,300).map(f=>`<tr><td><a href="player.html?pid=${f.pid}">${esc(nm(f))}</a></td><td>${Logo.t(f.tid,18,f.season)} ${esc((T[f.tid]||{}).abbrev||'')}</td><td>${f.oppTid!=null?Logo.t(f.oppTid,18,f.season)+' '+esc((T[f.oppTid]||{}).abbrev||''):''}</td><td class="n">${f.season||''}</td><td>${line(f.stats)}</td><td class="n">${f.score!=null?(+f.score).toFixed(1):''}</td><td>${f.playoffs?'<span class="tg">playoffs</span> ':''}${f.gid!=null?`<a class="btn ghost" style="min-height:32px;padding:0 12px" href="game.html?gid=${f.gid}">Box score</a>`:''}</td></tr>`).join('')+'</table>'+(L.length>300?'<p class="mu">First 300 of '+L.length+'; the CSV has all of them.</p>':'')+'<p><button class="btn ghost" id="cv">Export CSV</button></p>';
-  $('cv').onclick=()=>V.csv('feats.csv',['Player','Team','Opponent','Season','Playoffs','Score','Stat line'],L.map(f=>[nm(f),(T[f.tid]||{}).abbrev,(T[f.oppTid]||{}).abbrev,f.season,f.playoffs?1:0,f.score,Object.keys(f.stats||{}).filter(k=>f.stats[k]).map(k=>(LAB[k]||k)+' '+f.stats[k]).join('; ')]));
-  Faces.lazy($('top'),pid=>(P[pid]||{}).face,pid=>T[(P[pid]||{}).tid])}
- $('y').onchange=$('t').onchange=$('k').onchange=$('p').onchange=draw;draw()
+  const LD=FF.leaders(L);$('ldn').textContent='Top 25 of '+LD.length.toLocaleString('en-US')+' players with feats for the current choice of season, team, kind and games.';
+  const card=(e,i,me)=>`<div class="${me?'me':''}" data-i="${e.f._i}"><span class="n1">${i}</span><span class="av" data-pid="${e.pid}"></span><span class="nm"><a href="player.html?pid=${e.pid}">${esc(pname(e.pid))}</a><small>${tm((P[e.pid]||{}).tid!=null&&(P[e.pid]||{}).tid>=0?P[e.pid].tid:e.f.tid,null)} · best ${FF.value(e.f.stats).toFixed(1)} pts</small></span><span class="ct" title="feats">${e.n}</span></div>`;
+  $('ldr').innerHTML=LD.slice(0,25).map((e,i)=>card(e,i+1)).join('')||'<p class="mu">No players.</p>';
+  LDX=LD;search();
+  $('out').innerHTML='<table><tr><th>Player</th><th>Team</th><th>Opponent</th><th class="n sortable" data-s="season">Season</th><th>Stat line</th><th>Result</th><th class="n sortable" data-s="value" title="Fantasy-style points computed from the stat line">Value</th><th></th></tr>'+L.slice(0,300).map(f=>`<tr data-i="${f._i}"><td><a href="player.html?pid=${f.pid}">${esc(nm(f))}</a></td><td>${tm(f.tid,f.season)}</td><td>${tm(f.oppTid,f.season)}</td><td class="n">${f.season||''}</td><td>${line(f,OK)}</td><td>${rs(f)}</td><td class="n">${FF.value(f.stats).toFixed(1)}</td><td>${f.playoffs?'<span class="tg">playoffs</span> ':''}${f.gid!=null?`<a class="btn ghost" style="min-height:32px;padding:0 12px" href="game.html?gid=${f.gid}">Box score</a>`:''}</td></tr>`).join('')+'</table>'+(L.length>300?'<p class="mu">First 300 of '+L.length+'; the CSV has all of them.</p>':'')+'<p><button class="btn ghost" id="cv">Export CSV</button></p>';
+  $('cv').onclick=()=>V.csv('feats.csv',['Player','Team','Opponent','Season','Playoffs','Result','Value','Stat line'],L.map(f=>[nm(f),(T[f.tid]||{}).abbrev,(T[f.oppTid]||{}).abbrev,f.season,f.playoffs?1:0,FF.result(f),FF.value(f.stats).toFixed(1),FF.line(f.stats).map(e=>e.label+' '+e.v).join('; ')]));
+  $('out').querySelectorAll('th.sortable').forEach(th=>th.onclick=()=>{$('o').value=th.dataset.s;$('d').value=$('d').value==='desc'&&OK===th.dataset.s?'asc':'desc';draw(true)});
+  Faces.lazy($('top'),pid=>(P[pid]||{}).face,pid=>T[(P[pid]||{}).tid]);Faces.lazy($('ldr'),pid=>(P[pid]||{}).face,pid=>T[(P[pid]||{}).tid])}
+ /* place of any player in the ranking: row 26 */
+ let LDX=[];
+ $('ql').innerHTML=[...new Set(F.map(f=>nm(f)))].sort().map(n=>`<option value="${esc(n)}">`).join('');
+ function search(){const q=$('q').value.trim().toLowerCase(),box=$('qr');if(!q){box.innerHTML='';return}
+  const hit=[...new Set(F.map(f=>f.pid))].filter(pid=>pname(pid).toLowerCase().includes(q)).slice(0,5);
+  box.innerHTML=hit.map(pid=>{const i=LDX.findIndex(e=>e.pid===pid);if(i<0)return`<div><span class="n1">–</span><span class="nm"><a href="player.html?pid=${pid}">${esc(pname(pid))}</a><small>no feats for the current choice</small></span><span class="ct">0</span></div>`;const e=LDX[i];return`<div class="me" data-i="${e.f._i}"><span class="n1">${i+1}</span><span class="av" data-pid="${pid}"></span><span class="nm"><a href="player.html?pid=${pid}">${esc(pname(pid))}</a><small>place ${i+1} of ${LDX.length}</small></span><span class="ct">${e.n}</span></div>`}).join('')||'<p class="mu">No player with that name has feats in this save.</p>';
+  Faces.lazy(box,pid=>(P[pid]||{}).face,pid=>T[(P[pid]||{}).tid])}
+ $('q').oninput=search;
+ $('y').onchange=$('t').onchange=$('k').onchange=$('p').onchange=()=>draw(false);$('o').onchange=$('d').onchange=()=>draw(true);draw(false)
 }catch(e){$('out').innerHTML='<div class="card err"><b>Could not build the page.</b><p class="mu">'+esc(e.message)+'</p></div>';console.error(e)}})()</script></body></html>

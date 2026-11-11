@@ -1,0 +1,86 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Maps · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>
+.mp-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}.mp-tabs button{min-height:40px;padding:0 16px;border:1px solid #2a3a52;border-radius:99px;background:var(--bg3);color:var(--tx);font:700 13px var(--f);cursor:pointer}.mp-tabs button.on{background:var(--c2);color:#000;border-color:var(--c2)}
+select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1px solid #2a3a52;border-radius:10px;padding:0 10px;font:inherit}
+.mp-box{position:relative;background:radial-gradient(900px 400px at 50% 0,#12304f,#0a1424);border:1px solid #1e2b40;border-radius:16px;overflow:hidden;touch-action:none}
+.mp-box svg{display:block;width:100%;height:auto;cursor:grab}.mp-box svg.drag{cursor:grabbing}
+.mp-box path.rg{stroke:#0a1424;stroke-width:.6;transition:fill .15s}.mp-box path.rg:hover{stroke:#fff;stroke-width:1.4}.mp-box path.sel{stroke:var(--c2);stroke-width:2}
+.mp-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}.mp-zoom button{width:38px;height:38px;border-radius:10px;border:1px solid #2a3a52;background:#0e1a2dcc;color:var(--tx);font:800 18px var(--f);cursor:pointer}
+.mp-tip{position:fixed;z-index:60;pointer-events:none;background:#0b1424ee;border:1px solid var(--c2);border-radius:12px;padding:8px 12px;font-size:13px;max-width:260px;display:none;box-shadow:0 8px 24px #000a}.mp-tip b{display:block;font-size:15px}.mp-tip small{color:var(--mu)}
+.mp-leg{display:flex;align-items:center;gap:8px;margin:8px 2px;font-size:12px;color:var(--mu)}.mp-leg i{display:block;width:160px;height:10px;border-radius:9px;background:linear-gradient(90deg,rgb(27,54,86),rgb(244,197,66))}
+.mp-mk{cursor:pointer}.mp-mk circle{stroke:#fff;stroke-width:1.5;transition:r .12s}.mp-mk:hover circle{stroke-width:3}.mp-mk text{font:800 7px system-ui;fill:#fff;text-anchor:middle;pointer-events:none;paint-order:stroke;stroke:#000a;stroke-width:1.6px}
+.mp-side{display:grid;gap:12px;grid-template-columns:minmax(0,2fr) minmax(0,1fr)}@media(max-width:880px){.mp-side{grid-template-columns:1fr}}
+.mp-pl{display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #1e2b40;min-width:0}.mp-pl:last-child{border:0}.mp-pl .av{margin:0;width:34px;height:44px}.mp-pl div{flex:1;min-width:0}.mp-pl a{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mp-pl small{color:var(--mu)}.mp-pl b{font-variant-numeric:tabular-nums}
+.mp-ch{display:flex;flex-wrap:wrap;gap:6px}.mp-ch span{background:var(--bg3);border-radius:99px;padding:2px 10px;font-size:12px}
+</style></head><body>
+<main class="wrap"><div class="hero"><small>Maps</small><h1>Maps</h1><p id="sub">Loading…</p></div>
+<div class="card"><div class="mp-tabs" id="tb"><button data-k="t" class="on">Teams on the map</button><button data-k="s">Players by US state</button><button data-k="w">Players by country</button></div>
+<div class="ctl" id="ct"></div><p class="mu" id="nt" style="margin:8px 0 0"></p></div>
+<div class="mp-side"><div><div class="mp-box" id="bx"><div class="mp-zoom"><button id="zi" aria-label="Zoom in">+</button><button id="zo" aria-label="Zoom out">−</button><button id="zr" aria-label="Reset" style="font-size:13px">⟲</button></div><svg id="sv" viewBox="0 0 960 600" role="img" aria-label="Map"></svg></div><div class="mp-leg" id="lg"></div></div><div class="card" id="in"><h2 style="margin-top:0">Details</h2><p class="mu">Hover a place for its numbers, click it to list its players or open the team.</p></div></div>
+<div class="card" id="un" hidden></div></main><div class="mp-tip" id="tp"></div>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="metrics.js"></script><script src="leaguedata.js"></script><script src="faces.js"></script><script src="viz.js"></script><script src="pinfo.js"></script><script src="mapgeo.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),G=FBGMMapGeo,PI=FBGMPlayerInfo,esc=Viz.esc,NS='http://www.w3.org/2000/svg';const s=await HubDB.summary();
+if(!s){$('in').innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+Hub.setTitle('Maps');
+try{const teams=await LeagueData.teams();Logo.init(teams);const TM=Object.fromEntries(teams.map(t=>[t.tid,t]));
+ let US=null,WD=null,usL=null,wdL=null;
+ const load=async f=>{const r=await fetch(f);if(!r.ok)throw new Error(f+' not found: upload it with the other files');return r.json()};
+ const getUS=async()=>{if(!usL){US=G.decode(await load('us-states.json'),'states');usL=G.usLayout(US)}return usL};
+ const getWD=async()=>{if(!wdL){WD=G.decode(await load('world-countries.json'),'countries');wdL=G.worldLayout(WD)}return wdL};
+ let tab='t',metric='n',grp='a',sel=null,ALL=null,AG=null,VB={x:0,y:0,w:960,h:600},W0=960,H0=600;
+ const sv=$('sv'),tip=$('tp');
+ const setVB=()=>sv.setAttribute('viewBox',VB.x+' '+VB.y+' '+VB.w+' '+VB.h);
+ const zoom=(f,cx,cy)=>{const nw=Math.max(W0/12,Math.min(W0,VB.w/f)),k=nw/VB.w,nx=cx-(cx-VB.x)*k,ny=cy-(cy-VB.y)*k;VB={x:nx,y:ny,w:nw,h:VB.h*k};clampVB();setVB()},clampVB=()=>{VB.x=Math.max(0,Math.min(W0-VB.w,VB.x));VB.y=Math.max(0,Math.min(H0-VB.h,VB.y))};
+ const pt=e=>{const r=sv.getBoundingClientRect();return[VB.x+(e.clientX-r.left)/r.width*VB.w,VB.y+(e.clientY-r.top)/r.height*VB.h]};
+ $('zi').onclick=()=>zoom(1.6,VB.x+VB.w/2,VB.y+VB.h/2);$('zo').onclick=()=>zoom(1/1.6,VB.x+VB.w/2,VB.y+VB.h/2);$('zr').onclick=()=>{VB={x:0,y:0,w:W0,h:H0};setVB()};
+ sv.addEventListener('wheel',e=>{e.preventDefault();const[x,y]=pt(e);zoom(e.deltaY<0?1.25:.8,x,y)},{passive:false});
+ let dr=null,moved=0;sv.addEventListener('pointerdown',e=>{dr={x:e.clientX,y:e.clientY,vx:VB.x,vy:VB.y};moved=0;sv.classList.add('drag')});
+ addEventListener('pointermove',e=>{if(!dr)return;const r=sv.getBoundingClientRect(),dx=(e.clientX-dr.x)/r.width*VB.w,dy=(e.clientY-dr.y)/r.height*VB.h;moved=Math.max(moved,Math.abs(e.clientX-dr.x)+Math.abs(e.clientY-dr.y));VB.x=dr.vx-dx;VB.y=dr.vy-dy;clampVB();setVB()});
+ addEventListener('pointerup',()=>{dr=null;sv.classList.remove('drag')});
+ const showTip=(h,e)=>{tip.innerHTML=h;tip.style.display='block';const w=tip.offsetWidth,x=Math.min(innerWidth-w-8,e.clientX+14),y=Math.min(innerHeight-tip.offsetHeight-8,e.clientY+14);tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'};
+ const el=(n,a,p)=>{const x=document.createElementNS(NS,n);for(const k in a)x.setAttribute(k,a[k]);if(p)p.appendChild(x);return x};
+ /* ---------- players aggregated by place ---------- */
+ async function players(){if(ALL)return ALL;$('nt').textContent='Reading all players…';const P=await LeagueData.players();
+  ALL=P.map(p=>{const x=PI.row(p,s.season);let g=0,av=0;for(const t of p.stats||[]){if(t.playoffs)continue;g+=t.gp||0;av+=t.av||0}const ti=(p.awards||[]).filter(a=>/won championship/i.test(a.type)).length;return{pid:p.pid,tid:p.tid,face:p.face,name:((p.firstName||'')+' '+(p.lastName||'')).trim(),pos:x.pos,ovr:x.ovr,iso:x.iso,state:x.state,country:x.country,g,av,ti}});return ALL}
+ const pool=()=>ALL.filter(r=>grp==='*'||(grp==='a'?r.tid>=0:r.tid===-2));
+ const val=(e,m)=>m==='n'?e.n:m==='act'?e.act:m==='av'?e.av:m==='ti'?e.ti:m==='b'?e.best:m==='o'?(e.no?e.sum/e.no:0):0;
+ const LBL={n:'Players',act:'Players on a team',av:'Total AV',ti:'Championships',b:'Best overall',o:'Average overall'};
+ function agg(kind){const m={};for(const r of pool()){let k;if(kind==='s'){if(r.iso!=='us'||!r.state)continue;k=G.FIPS[r.state];if(!k)continue}else{k=r.iso&&G.ISO2N[r.iso]?G.ISO2N[r.iso]:(r.iso==='xk'?'Kosovo':null);if(!k)continue}
+   const e=m[k]=m[k]||{k,n:0,act:0,av:0,ti:0,best:0,sum:0,no:0,list:[]};e.n++;if(r.tid>=0)e.act++;e.av+=r.av;e.ti+=r.ti;if(r.ovr!=null){e.sum+=r.ovr;e.no++;if(r.ovr>e.best)e.best=r.ovr}e.list.push(r)}return m}
+ /* ---------- drawing ---------- */
+ function ctl(){let h='';if(tab==='t')h='<div><label for="cb">Colour the teams by</label><select id="cb"><option value="t">Team colours</option><option value="c">Conference</option><option value="w">Win percentage</option></select></div>';
+  else h='<div><label for="mt">Show</label><select id="mt">'+Object.keys(LBL).map(k=>`<option value="${k}">${LBL[k]}</option>`).join('')+'</select></div><div><label for="gp">Players</label><select id="gp"><option value="a">Active (on a team)</option><option value="*">Everyone in the save</option><option value="p">Draft prospects</option></select></div>';
+  $('ct').innerHTML=h;if(tab!=='t'){$('mt').value=metric;$('gp').value=grp;$('mt').onchange=e=>{metric=e.target.value;draw()};$('gp').onchange=e=>{grp=e.target.value;sel=null;draw()}}else{$('cb').value=tm;$('cb').onchange=e=>{tm=e.target.value;draw()}}}
+ let tm='t';
+ const recOf=t=>{const z=(t.seasons||[]).find(x=>x.season===s.season)||{},g=(z.won||0)+(z.lost||0)+(z.tied||0);return{w:z.won||0,l:z.lost||0,t:z.tied||0,pct:g?((z.won||0)+(z.tied||0)/2)/g:0,g,cid:z.cid!=null?z.cid:t.cid}};
+ async function drawTeams(){const L=await getUS();W0=960;H0=600;sv.innerHTML='';const base=el('g',{},sv);Object.keys(L.paths).forEach(k=>el('path',{d:L.paths[k],fill:'#16233a',class:'rg','data-i':'x'},base));
+  const placed=[],un=[],seen={};for(const t of teams){const c=G.locate(t.region);if(!c){un.push(t);continue}const q=L.project(c[1],c[0]),key=Math.round(q[0]/6)+','+Math.round(q[1]/6),k=seen[key]=(seen[key]||0)+1;placed.push({t,x:q[0]+(k-1)*14,y:q[1]+(k-1)*8})}
+  const PAL=['#ff7a59','#4fc3f7','#9ccc65','#ffd54f','#ba68c8','#4db6ac'],cids=[...new Set(teams.map(t=>recOf(t).cid))];
+  const colour=t=>tm==='c'?PAL[Math.max(0,cids.indexOf(recOf(t).cid))%PAL.length]:tm==='w'?G.shade(recOf(t).pct):((t.colors||[])[0]||'#0b6cff');
+  const g=el('g',{},sv);placed.forEach(({t,x,y})=>{const gm=el('g',{class:'mp-mk',transform:`translate(${x.toFixed(1)},${y.toFixed(1)})`},g),r=recOf(t);el('circle',{r:11,fill:colour(t)},gm);const tx=el('text',{y:2.6},gm);tx.textContent=t.abbrev||'';
+   gm.addEventListener('pointermove',e=>showTip(`<b>${esc((t.region+' '+t.name).trim())}</b>${r.g?r.w+'–'+r.l+(r.t?'–'+r.t:'')+' · '+(r.pct*100).toFixed(0)+'%':'No games yet'}<br><small>${esc(t.region)}</small>`,e));gm.addEventListener('pointerleave',()=>tip.style.display='none');gm.addEventListener('click',()=>{if(moved<6)location.href='team.html#'+t.tid})});
+  $('lg').innerHTML=tm==='w'?'<span>0%</span><i></i><span>100% wins</span>':tm==='c'?cids.map((c,i)=>`<span style="display:inline-flex;gap:4px;align-items:center"><b style="width:12px;height:12px;border-radius:50%;background:${PAL[i%PAL.length]};display:inline-block"></b>Conference ${esc(String(c))}</span>`).join(' '):'Each marker is a team in its own colours; click it to open the team.';
+  $('sub').textContent=placed.length+' of '+teams.length+' teams placed by city name';$('nt').textContent='Teams are placed by the name of their city, from a built-in list of about 200 US cities.';
+  $('in').innerHTML='<h2 style="margin-top:0">Teams</h2><p class="mu">Hover a marker for the record, click it for the team page. Teams from the same city are placed side by side. Use the wheel, the buttons or drag to zoom and move.</p>';
+  const u=$('un');u.hidden=!un.length;u.innerHTML=un.length?'<h2 style="margin-top:0">Not on the map</h2><p class="mu" style="margin-top:0">The city name of these teams is not in the built-in list.</p><div class="mp-ch">'+un.map(t=>`<span><a href="team.html#${t.tid}">${esc((t.region+' '+t.name).trim())}</a></span>`).join('')+'</div>':''}
+ function panel(k,name,e){const L=e?e.list.slice().sort((a,b)=>b.av-a.av||(b.ovr||0)-(a.ovr||0)).slice(0,12):[];
+  $('in').innerHTML=`<h2 style="margin-top:0">${esc(name)}</h2>${e?`<p>${e.n.toLocaleString('en-US')} players · ${e.act} on a team · AV ${Math.round(e.av).toLocaleString('en-US')} · ${e.ti} title${e.ti===1?'':'s'}${e.no?' · average overall '+(e.sum/e.no).toFixed(1):''}</p>`:'<p class="mu">No players.</p>'}${L.map(r=>`<div class="mp-pl"><span class="av" data-pid="${r.pid}"></span><div><a href="player.html?pid=${r.pid}">${esc(r.name)}</a><small>${esc(r.pos||'')} · ${r.tid>=0&&TM[r.tid]?esc(TM[r.tid].abbrev):({'-1':'free agent','-2':'prospect','-3':'retired'}[r.tid]||'')}${r.ovr!=null?' · ovr '+r.ovr:''}</small></div><b>${Math.round(r.av)}</b></div>`).join('')}${e?'<p class="mu" style="margin-bottom:0">Sorted by approximate value. <a href="countries.html" style="text-decoration:underline">Full tables</a></p>':''}`;
+  Faces.lazy($('in'),pid=>(ALL.find(r=>r.pid==pid)||{}).face,pid=>{const r=ALL.find(q=>q.pid==pid);return r&&TM[r.tid]})}
+ async function drawPlayers(kind){await players();const L=kind==='s'?await getUS():await getWD(),A=agg(kind),names={};
+  if(kind==='s')US.forEach(f=>names[f.id]=f.name);else WD.forEach(f=>names[f.id||f.name]=f.name);
+  W0=960;H0=kind==='s'?600:480;if(VB.h>H0||!VB.w)VB={x:0,y:0,w:W0,h:H0};sv.setAttribute('viewBox','0 0 960 '+H0);VB={x:0,y:0,w:W0,h:H0};
+  sv.innerHTML='';const g=el('g',{},sv),mx=Math.max(1,...Object.values(A).map(e=>val(e,metric)));
+  Object.keys(L.paths).forEach(k=>{const e=A[k]||(kind==='w'&&names[k]==='Kosovo'?A.Kosovo:null),v=e?val(e,metric):0,p=el('path',{d:L.paths[k],class:'rg'+(sel===k?' sel':''),fill:e&&v>0?G.shade(Math.sqrt(v/mx)):'#16233a','data-k':k},g);
+   p.addEventListener('pointermove',ev=>showTip(`<b>${esc(names[k]||k)}</b>${e?LBL[metric]+': '+(metric==='o'?val(e,metric).toFixed(1):Math.round(val(e,metric)).toLocaleString('en-US'))+'<br><small>'+e.n+' players · '+e.ti+' titles</small>':'<small>No players</small>'}`,ev));p.addEventListener('pointerleave',()=>tip.style.display='none');
+   p.addEventListener('click',()=>{if(moved>6)return;sel=k;g.querySelectorAll('path').forEach(q=>q.classList.toggle('sel',q.dataset.k===k));panel(k,names[k]||k,e)})});
+  const tot=Object.values(A).reduce((a,e)=>a+e.n,0),all=pool().length;
+  $('lg').innerHTML=`<span>0</span><i></i><span>${metric==='o'?mx.toFixed(0):Math.round(mx).toLocaleString('en-US')} · ${LBL[metric]}</span>`;
+  $('sub').textContent=(kind==='s'?'US states':'Countries')+' · '+tot.toLocaleString('en-US')+' of '+all.toLocaleString('en-US')+' players placed';
+  $('nt').textContent=kind==='s'?'US-born players only. This save writes US birthplaces as "City, USA", so the state comes from a built-in list of well-known cities; players from other cities are not placed.':'Country from the birthplace text of each player.';
+  /* places that exist in the data but not on the map */
+  const miss={};pool().forEach(r=>{if(kind==='w'){if(!r.country)return;if(r.iso&&(G.ISO2N[r.iso]||r.iso==='xk'))return;miss[r.country]=(miss[r.country]||0)+1}else if(r.iso==='us'&&!r.state)miss['US, city not in the list']=(miss['US, city not in the list']||0)+1});
+  const u=$('un'),ks=Object.keys(miss).sort((a,b)=>miss[b]-miss[a]);u.hidden=!ks.length;u.innerHTML=ks.length?'<h2 style="margin-top:0">Not drawn</h2><p class="mu" style="margin-top:0">'+(kind==='w'?'Too small for the 110m map, or without a recognised country:':'')+'</p><div class="mp-ch">'+ks.map(k=>`<span>${esc(k)} · ${miss[k]}</span>`).join('')+'</div>':'';
+  if(sel&&names[sel])panel(sel,names[sel],A[sel]);else $('in').innerHTML='<h2 style="margin-top:0">Details</h2><p class="mu">Hover a place for its numbers, click it to list its players. Use the wheel, the buttons or drag to zoom and move.</p>'}
+ async function draw(){tip.style.display='none';ctl();$('lg').innerHTML='';try{if(tab==='t'){sv.setAttribute('viewBox','0 0 960 600');VB={x:0,y:0,w:960,h:600};await drawTeams()}else await drawPlayers(tab)}catch(e){$('sub').textContent='Could not draw the map';$('nt').innerHTML='<span class="bad">'+esc(e.message)+'</span>';console.error(e)}}
+ $('tb').onclick=e=>{const k=e.target.dataset.k;if(!k)return;tab=k;sel=null;$('tb').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));draw()};
+ await draw()
+}catch(e){$('in').innerHTML='<div class="card err"><b>Could not build the page.</b><p class="mu">'+Viz.esc(e.message)+'</p></div>';console.error(e)}})()</script></body></html>

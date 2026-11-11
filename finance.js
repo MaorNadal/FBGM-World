@@ -8,7 +8,7 @@
   function row(t, s) {
     const rev = parts(s.revenues), exp = parts(s.expenses), R = total(rev), E = total(exp), g = (s.won || 0) + (s.lost || 0) + (s.tied || 0);
     return { tid: t.tid, season: s.season, name: ((s.region || t.region || '') + ' ' + (s.name || t.name || '')).trim(), abbrev: s.abbrev || t.abbrev,
-      rev: R, exp: E, profit: R != null && E != null ? R - E : null, cash: typeof s.cash === 'number' ? s.cash : null, payroll: exp.salary != null ? exp.salary : (typeof s.payroll === 'number' ? s.payroll : null),
+      rev: R, exp: E, profit: R != null && E != null ? R - E : null, cash: typeof s.cash === 'number' ? s.cash : null, payroll: typeof s.payrollEndOfSeason === 'number' && s.payrollEndOfSeason > 0 ? s.payrollEndOfSeason : exp.salary != null ? exp.salary : (typeof s.payroll === 'number' ? s.payroll : null),
       revParts: rev, expParts: exp, w: s.won || 0, l: s.lost || 0, t: s.tied || 0, pct: g ? ((s.won || 0) + (s.tied || 0) / 2) / g : null, hype: typeof s.hype === 'number' ? s.hype : null, pop: typeof s.pop === 'number' ? s.pop : null, att: typeof s.att === 'number' ? s.att : null, games: g };
   }
   const table = (teams, season) => teams.map(t => { const s = (t.seasons || []).find(x => x.season === season); return s ? row(t, s) : null; }).filter(Boolean);

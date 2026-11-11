@@ -1,0 +1,43 @@
+/* Awards and Award races: trophy player cards. All class names start with aw- so nothing clashes with hub.css. */
+.aw-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.aw-c{--k1:#0b6cff;--k2:#ffb81c;position:relative;display:block;min-width:0;overflow:hidden;border-radius:18px;padding:14px;color:var(--tx);background:linear-gradient(150deg,color-mix(in srgb,var(--k1) 62%,#0b1020),#0a0e19 78%);border:1px solid color-mix(in srgb,var(--k2) 45%,transparent);transition:transform .18s,box-shadow .18s}
+.aw-c:hover,.aw-c:focus-visible{transform:translateY(-4px) rotate(-.4deg);box-shadow:0 16px 34px #000a,0 0 0 2px var(--k2);outline:none}
+.aw-c:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 18px,#ffffff06 18px 19px);pointer-events:none}
+.aw-c:after{content:"";position:absolute;right:-26px;top:-10px;bottom:-10px;width:70px;background:var(--k2);opacity:.16;transform:skewX(-16deg);pointer-events:none}
+.aw-h{display:flex;align-items:center;gap:8px;position:relative;z-index:1;min-width:0}
+.aw-h .aw-tr{flex:none;filter:drop-shadow(0 2px 4px #0008)}
+.aw-ty{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:var(--k2);line-height:1.2}
+.aw-b{display:flex;align-items:center;gap:12px;margin:10px 0 8px;position:relative;z-index:1;min-width:0}
+.aw-f{margin:0;flex:none;width:62px;height:82px;border-radius:12px;overflow:hidden;background:#ffffff14;border:2px solid var(--k2)}
+.aw-n{flex:1;min-width:0}.aw-n b{display:block;font-size:17px;line-height:1.15;overflow-wrap:anywhere}.aw-n small{display:flex;align-items:center;gap:5px;color:#d5dbe6;font-size:12px;margin-top:3px;flex-wrap:wrap}
+.aw-o{flex:none;text-align:center;font:800 26px/1 system-ui;color:var(--k2)}.aw-o small{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#cfd6e2;font-weight:600;margin-top:2px}
+.aw-s{display:flex;flex-wrap:wrap;gap:4px;position:relative;z-index:1}.aw-s span{background:#00000040;border-radius:8px;padding:1px 8px;font-size:12px;white-space:nowrap}.aw-s b{color:var(--k2)}
+.aw-x{margin-top:8px;font-size:12px;color:#e9d8a6;position:relative;z-index:1;font-weight:700}
+/* spotlight */
+.aw-big{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;padding:22px;border-radius:22px;--k1:#0b6cff;--k2:#f4c542;position:relative;overflow:hidden;background:radial-gradient(520px 240px at 90% 0,color-mix(in srgb,var(--k2) 30%,transparent),transparent),linear-gradient(150deg,color-mix(in srgb,var(--k1) 65%,#0b1020),#080b14 75%);border:2px solid var(--k2);color:var(--tx)}
+.aw-big .aw-bf{margin:0;width:150px;height:200px;border-radius:18px;overflow:hidden;border:3px solid var(--k2);background:#ffffff14}
+.aw-big small.k{letter-spacing:.3em;text-transform:uppercase;color:var(--k2);font-weight:800}
+.aw-big h2{margin:4px 0;font-size:clamp(26px,5vw,44px);line-height:1.05}
+.aw-big .aw-s span{font-size:14px;padding:3px 12px}
+.aw-big .aw-tr{position:absolute;right:16px;top:10px;opacity:.9}
+@media(max-width:560px){.aw-big{grid-template-columns:1fr;justify-items:center;text-align:center}.aw-big .aw-bf{width:120px;height:160px}.aw-big .aw-s{justify-content:center}}
+/* all-league lineup */
+.aw-tm{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr))}
+.aw-m{--k1:#0b6cff;--k2:#ffb81c;display:flex;flex-direction:column;align-items:center;text-align:center;gap:3px;padding:8px 6px;border-radius:14px;background:linear-gradient(170deg,color-mix(in srgb,var(--k1) 55%,#0b1020),#0a0e19);border-bottom:3px solid var(--k2);min-width:0;color:var(--tx);transition:transform .15s}
+.aw-m:hover{transform:translateY(-3px)}.aw-m .aw-f{width:54px;height:72px}.aw-m b{font-size:13px;line-height:1.15;overflow-wrap:anywhere}.aw-m small{color:#cfd6e2;font-size:11px}.aw-m i{font-style:normal;font-weight:800;color:var(--k2);font-size:11px;letter-spacing:.1em}
+.aw-lab{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);margin:14px 0 6px;font-weight:800}
+.aw-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.aw-tabs button{min-height:40px;padding:0 16px;border:1px solid #2a3a52;border-radius:99px;background:var(--bg3);color:var(--tx);font:700 13px var(--f);cursor:pointer}.aw-tabs button.on{background:var(--c2);color:#000;border-color:var(--c2)}
+/* all-time board */
+.aw-bd{display:grid;gap:8px}.aw-r{display:grid;grid-template-columns:28px 40px 1fr auto;gap:10px;align-items:center;background:var(--bg3);border-radius:12px;padding:6px 10px;min-width:0}
+.aw-r .aw-f{width:36px;height:48px;border-width:1px}.aw-r .nm{min-width:0}.aw-r .nm a{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.aw-r .nm small{color:var(--mu)}
+.aw-r .rk{font:800 16px/1 system-ui;color:var(--mu);text-align:center}.aw-r .bar{display:flex;align-items:center;gap:8px}.aw-r .bar i{display:block;height:8px;border-radius:9px;background:linear-gradient(90deg,var(--c1),var(--c2))}.aw-r .bar b{color:var(--c2);font-size:18px}
+/* award race extras */
+.aw-ring{position:absolute;right:12px;bottom:10px;width:58px;height:58px;z-index:1}.aw-ring text{fill:var(--k2);font:800 15px system-ui}
+.aw-won{display:inline-block;background:var(--k2);color:#111;border-radius:99px;padding:0 9px;font-size:11px;font-weight:800;margin-left:6px}
+
+.aw-c.rc .aw-h{padding-right:66px}.aw-c.rc .aw-ring{top:10px;bottom:auto;right:12px}
+
+/* team cards (Championships, Team history) */
+.aw-t{--k1:#0b6cff;--k2:#ffb81c;display:flex;align-items:center;gap:12px;min-width:0;padding:12px 14px;border-radius:16px;color:var(--tx);background:linear-gradient(120deg,color-mix(in srgb,var(--k1) 60%,#0b1020),#0a0e19 85%);border:1px solid color-mix(in srgb,var(--k2) 45%,transparent);transition:transform .15s}
+.aw-t:hover{transform:translateY(-3px);box-shadow:0 0 0 2px var(--k2)}.aw-t .aw-tn{flex:1;min-width:0}.aw-t small{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--k2);font-weight:800}.aw-t b{display:block;font-size:17px;line-height:1.15;overflow-wrap:anywhere}.aw-t em{font-style:normal;color:#cfd6e2;font-size:12px}.aw-t .aw-tr{flex:none}
+.aw-gold{color:#f4c542;font-weight:800}h3.aw-lab{margin-top:16px}

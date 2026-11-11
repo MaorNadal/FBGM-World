@@ -64,7 +64,7 @@
   }
 
   /* ---------- player metrics ---------- */
-  const SUM = ['gp', 'gs', 'pssCmp', 'pss', 'pssYds', 'pssTD', 'pssInt', 'pssSk', 'rus', 'rusYds', 'rusTD', 'tgt', 'rec', 'recYds', 'recTD', 'defTckSolo', 'defTckAst', 'defTck', 'defSk', 'defInt', 'fmbLost', 'av'];
+  const SUM = ['gp', 'gs', 'pssCmp', 'pss', 'pssYds', 'pssTD', 'pssInt', 'pssSk', 'rus', 'rusYds', 'rusTD', 'tgt', 'rec', 'recYds', 'recTD', 'defTckSolo', 'defTckAst', 'defTck', 'defSk', 'defInt', 'fmbLost', 'av', 'pssSkYds', 'fmb', 'pr', 'prYds', 'prTD', 'kr', 'krYds', 'krTD', 'defTckLoss', 'defPssDef', 'defIntYds', 'defIntTD', 'defFmbFrc', 'defFmbRec', 'defSft', 'fg0', 'fg20', 'fg30', 'fg40', 'fg50', 'fga0', 'fga20', 'fga30', 'fga40', 'fga50', 'xp', 'xpa', 'pnt', 'pntYds', 'pntTB', 'pntIn20', 'pen', 'penYds'];
   const SKILLS = ['hgt', 'stre', 'spd', 'endu', 'thv', 'thp', 'tha', 'bsc', 'elu', 'rtr', 'hnd', 'rbk', 'pbk', 'pcv', 'tck', 'prs', 'rns', 'kpw', 'kac', 'ppw', 'pac'];
   const tck = r => r.defTckSolo || r.defTckAst ? n(r.defTckSolo) + n(r.defTckAst) : n(r.defTck);
   const fp = r => n(r.pssYds) * .04 + n(r.pssTD) * 4 - n(r.pssInt) * 2 + (n(r.rusYds) + n(r.recYds)) * .1 + (n(r.rusTD) + n(r.recTD)) * 6 - n(r.fmbLost) * 2;

@@ -38,3 +38,25 @@ window.Faces = (function () {
   }
   return { draw, lazy, svgString, load, dressed, silhouette: sil, isReal: () => real };
 })();
+/* FA-1 (1.46): a face beside every player name in every table. Any link to player.html?pid= inside a table cell that has no face yet gets one; the face record is read from the league database
+   only when the row scrolls into view, drawn in the colours of the team of that player. Works on every page that loads db.js, with no change to the page; pages that already draw their faces are left alone. */
+(function () {
+  if (!window.Faces) return;
+  const cache = {}, teams = {};
+  const rec = async pid => { if (cache[pid]) return cache[pid]; return cache[pid] = (async () => { try { const p = await HubDB.get('players', pid); if (!p || !p.face) return null; let t = null; if (p.tid != null && p.tid >= 0) { teams[p.tid] = teams[p.tid] || HubDB.get('teams', p.tid).catch(() => null); t = await teams[p.tid]; } return { face: p.face, team: t }; } catch (e) { return null; } })(); };
+  let io = null;
+  const watch = el => { const go = async () => { const r = await rec(+el.dataset.pid); Faces.draw(el, r ? r.face : null, r ? r.team : null); }; if (!('IntersectionObserver' in window)) { go(); return; } io = io || new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); e.target.__go(); } }), { rootMargin: '300px' }); el.__go = go; io.observe(el); };
+  function scan(root) {
+    if (!window.HubDB) return; const links = (root || document).querySelectorAll('a[href*="player.html?pid="]');
+    for (const a of links) {
+      if (a.dataset.fa) continue; a.dataset.fa = 1; if (a.closest('.hero,.top,.bot,nav,header,.aw-c,.aw-m,.aw-big,.fl-m')) continue;
+      const bar = a.classList.contains('vbr'), host = bar ? a.querySelector('.vbl') : a.closest('td,li,.vbr,.as');
+      if (!host || host.querySelector('.av') || (bar && a.querySelector('.av'))) continue;
+      const m = /pid=(\d+)/.exec(a.getAttribute('href')); if (!m) continue; const s = document.createElement('span'); s.className = 'av'; s.dataset.pid = m[1]; s.setAttribute('aria-hidden', 'true');
+      if (bar) host.insertBefore(s, host.firstChild); else a.parentNode.insertBefore(s, a); watch(s);
+    }
+  }
+  let t = null; const later = () => { clearTimeout(t); t = setTimeout(() => scan(document), 250); };
+  const start = () => { scan(document); new MutationObserver(later).observe(document.body, { childList: true, subtree: true }); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();

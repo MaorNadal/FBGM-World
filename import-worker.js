@@ -40,7 +40,7 @@ onmessage = async e => {
       await chain;
     }
     for (const s in buf) flush(s); await chain;
-    const gmap = {}; (Array.isArray(ga) ? ga : []).forEach(a => { if (a && a.key) gmap[a.key] = a.value; });
+    const gmap = {}; if (Array.isArray(ga)) ga.forEach(a => { if (a && a.key) gmap[a.key] = a.value; }); else if (ga && typeof ga === 'object') Object.assign(gmap, ga); /* GA-1: the export may store gameAttributes as an object */
     const season = gmap.season, meta = { k: 'summary', leagueName: gmap.leagueName || '', season, phase: gmap.phase, userTid: FBGMTransform.attr(gmap.userTid, season), importedAt: Date.now(), size: total, seasonGames, fileCount };
     await put('meta', [meta, { k: 'gameAttributes', v: gmap }]);
     const stored = {}; for (const s of ['players', 'teams', 'games', 'box', 'events']) stored[s] = await count(s);
