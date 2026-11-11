@@ -78,14 +78,14 @@ window.Viz = (function () {
     redraw(); return out;
   }
   /* ---------- ranking bars: rows = [{ id, label, value, logo (html), c1, href, sub }] ---------- */
-  function bars(box, rows, o) {
+  function bars(box, rows, o) { box.style.height = ''; box.classList.remove('vz'); /* CL-1: a scatter leaves its fixed height on the box; other charts must not inherit it */
     o = o || {}; const L = rows.filter(r => r.value != null && isFinite(r.value)), hi = o.better !== 'low', top = o.top || L.length;
     L.sort((a, b) => hi ? b.value - a.value : a.value - b.value); const S = L.slice(0, top); const mx = Math.max(...S.map(r => Math.abs(r.value)), 1e-9), mn = Math.min(0, ...S.map(r => r.value)), span = Math.max(...S.map(r => r.value), 0) - mn || 1;
     box.classList.add('vbars'); const fm = o.fmt || (v => v.toLocaleString('en-US'));
     box.innerHTML = S.map((r, i) => { const w = ((r.value - mn) / span * 100).toFixed(1); return `<${r.href ? 'a href="' + esc(r.href) + '"' : 'div'} class="vbr${o.mine != null && r.id === o.mine ? ' me' : ''}" style="--w:${w}%;--k:${hex(r.c1, '#0b6cff')};--d:${Math.min(i, 30) * 18}ms"><span class="vbn">${i + 1}</span><span class="vbl">${r.logo || ''}<b>${esc(r.label)}</b></span><span class="vbb"><u></u></span><span class="vbv">${esc(fm(r.value))}</span></${r.href ? 'a' : 'div'}>`; }).join('') || '<p class="mu">No data for this choice.</p>';
   }
   /* ---------- season lines: series = [{ id, label, c1, pts: [[season, value]] }], hl = id ---------- */
-  function lines(box, series, o) {
+  function lines(box, series, o) { box.style.height = ''; box.classList.remove('vz'); /* CL-1: a scatter leaves its fixed height on the box; other charts must not inherit it */
     o = o || {}; const W = Math.max(280, box.clientWidth || 600), H = Math.round(W < 520 ? 260 : 330), m = { l: 46, r: 56, t: 14, b: 30 };
     const all = series.flatMap(s => s.pts).filter(p => p[1] != null && isFinite(p[1])); if (!all.length) { box.innerHTML = '<p class="mu">No data for this choice.</p>'; return; }
     const xs = all.map(p => p[0]), X0 = Math.min(...xs), X1 = Math.max(...xs), ys = nice(Math.min(...all.map(p => p[1])), Math.max(...all.map(p => p[1])), 5);
@@ -97,7 +97,7 @@ window.Viz = (function () {
     box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="${esc(o.title || 'Seasons')}">${s}</svg>`;
   }
   /* ---------- bar-chart race: frames = [{ label, rows: [{ id, label, value, logo, c1 }] }] ---------- */
-  function race(box, frames, o) {
+  function race(box, frames, o) { box.style.height = ''; box.classList.remove('vz'); /* CL-1: a scatter leaves its fixed height on the box; other charts must not inherit it */
     o = o || {}; const N = Math.min(o.top || 10, 16), fm = o.fmt || (v => Math.round(v).toLocaleString('en-US')), RH = 36, hi = o.better !== 'low';
     if (!frames.length) { box.innerHTML = '<p class="mu">No data for this choice.</p>'; return { stop() {} }; }
     box.classList.add('vrace'); let i = 0, timer = null, ms = 1200;
@@ -120,7 +120,7 @@ window.Viz = (function () {
     show(0); return { stop, show };
   }
   /* ---------- heat map: rows = [{ id, label, logo, vals: [number|null] }], cols = [label] ---------- */
-  function heat(box, rows, cols, o) {
+  function heat(box, rows, cols, o) { box.style.height = ''; box.classList.remove('vz'); /* CL-1: a scatter leaves its fixed height on the box; other charts must not inherit it */
     o = o || {}; const hi = o.better !== 'low', fm = o.fmt || (v => v.toFixed(1)), all = rows.flatMap(r => r.vals).filter(v => v != null && isFinite(v));
     if (!all.length) { box.innerHTML = '<p class="mu">No data for this choice.</p>'; return; }
     const lo = Math.min(...all), mx = Math.max(...all), mid = (lo + mx) / 2;
@@ -132,7 +132,7 @@ window.Viz = (function () {
     box.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => tr.classList.toggle('sel'));
   }
   /* ---------- histogram: items = [{ id, label, value }], hl = Set of ids to mark ---------- */
-  function hist(box, items, o) {
+  function hist(box, items, o) { box.style.height = ''; box.classList.remove('vz'); /* CL-1: a scatter leaves its fixed height on the box; other charts must not inherit it */
     o = o || {}; const L = items.filter(x => x.value != null && isFinite(x.value));
     if (L.length < 3) { box.innerHTML = '<p class="mu">Not enough data for a distribution.</p>'; return; }
     const W = Math.max(280, box.clientWidth || 600), H = Math.round(W < 520 ? 260 : 320), m = { l: 40, r: 12, t: 22, b: 34 }, vs = L.map(x => x.value).sort((a, b) => a - b);
@@ -149,7 +149,7 @@ window.Viz = (function () {
     return { mean, median: med, n: L.length };
   }
   /* ---------- radar: axes = [label], series = [{ id, label, color, values: [0-100], raw: [text] }] ---------- */
-  function radar(box, axes, series, o) {
+  function radar(box, axes, series, o) { box.style.height = ''; box.classList.remove('vz'); /* CL-1: a scatter leaves its fixed height on the box; other charts must not inherit it */
     o = o || {}; const W = 360, H = 330, cx = 180, cy = 165, r = 112, n = axes.length, pt = (i, v) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n, k = Math.max(0, Math.min(100, v)) / 100; return [cx + Math.cos(a) * r * k, cy + Math.sin(a) * r * k]; };
     const ring = v => axes.map((_, i) => pt(i, v).map(x => x.toFixed(1)).join(',')).join(' ');
     let s = [25, 50, 75, 100].map(v => `<polygon points="${ring(v)}" fill="none" stroke="#223049"/>`).join('') + `<text x="${cx + 3}" y="${cy - r * .5 + 3}" fill="#566680" font-size="9">50</text>`;

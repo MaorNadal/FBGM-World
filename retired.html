@@ -4,13 +4,13 @@
 <div class="card"><h2 id="wh">Wall</h2><div class="wall" id="wall"></div></div>
 <div class="card"><h2 id="th">Trophy room</h2><div class="tr" id="tr"></div></div>
 <div class="card"><h2>Retired numbers across the league</h2><div id="all"></div></div></main>
-<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="metrics.js"></script><script src="rivals.js"></script><script src="leaguedata.js"></script><script src="faces.js"></script><script src="viz.js"></script>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="metrics.js"></script><script src="rivals.js"></script><script src="leaguedata.js"></script><script src="faces.js"></script><script src="viz.js"></script><script src="retired.js"></script>
 <script>(async()=>{const $=i=>document.getElementById(i),V=Viz,esc=V.esc;const s=await HubDB.summary();
 if(!s){$('wall').innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
 Hub.setTitle('Retired numbers');
 try{const teams=(await LeagueData.teams()).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name));Logo.init(teams);const T=Object.fromEntries(teams.map(t=>[t.tid,t]));
  const games=await LeagueData.games(),info=FBGMRivals.seasonsInfo(teams,games,s.season),titles={};info.forEach(i=>{if(i.champion)(titles[i.champion.tid]=titles[i.champion.tid]||[]).push(i)});
- const R=t=>Array.isArray(t.retiredJerseyNumbers)?t.retiredJerseyNumbers:[],total=teams.reduce((a,t)=>a+R(t).length,0);
+ const R=t=>FBGMRetired.dedupe(t.retiredJerseyNumbers),total=teams.reduce((a,t)=>a+R(t).length,0);
  $('t').innerHTML=teams.map(t=>`<option value="${t.tid}">${esc((t.region+' '+t.name).trim())} · ${R(t).length}</option>`).join('');
  const h=+location.hash.slice(1);$('t').value=T[h]?h:(T[s.userTid]?s.userTid:teams[0].tid);
  const hx=(c,d)=>/^#[0-9a-f]{6}$/i.test(c||'')?c:d,tx=c=>Hub.ink(c);

@@ -135,7 +135,7 @@
     extras: async () => [],
     build: async y => {
       const ret = C.P.filter(p => p.tid === -3 && lastSeason(p) === y).map(p => ({ p, cs: careerSum(p), pk: Math.max(0, ...(p.ratings || []).map(r => r.ovr || 0)) })).sort((a, b) => b.cs.av - a.cs.av).slice(0, 8);
-      const jr = []; C.teams.forEach(t => (t.retiredJerseyNumbers || []).forEach(r => { if (+r.seasonRetired === y) jr.push({ tid: t.tid, number: r.number, pid: r.pid, text: r.text }); }));
+      const jr = []; C.teams.forEach(t => (typeof FBGMRetired !== 'undefined' ? FBGMRetired.dedupe(t.retiredJerseyNumbers) : (t.retiredJerseyNumbers || [])).forEach(r => { if (+r.seasonRetired === y) jr.push({ tid: t.tid, number: r.number, pid: r.pid, text: r.text }); }));
       if (!ret.length && !jr.length) return { scenes: [ident('Retirement ceremonies'), sc('none', 7000, '', '<div class="kick">Retirement ceremonies</div><div class="mid">No retirements or retired numbers for ' + y + '</div>')], ticker: 'Retirement ceremonies ·' };
       const jerseyFor = pid => jr.find(x => x.pid === pid);
       const S = [ident('Retirement ceremonies'), sc('title', 7500, 'Retirement ceremonies · ' + y, `<div class="kick">The ${y} season</div><div class="big">Farewell</div><div class="sm">${ret.length} player${ret.length === 1 ? '' : 's'} retire · ${jr.length} number${jr.length === 1 ? '' : 's'} retired</div>`, [[C.H1, `Tonight we say goodbye to the players who leave the game after the ${y} season.`]])];
@@ -204,6 +204,60 @@
     const t = ix('trophy'); if (t >= 0) { S.splice(t + 1, 0, parade, locker); } else S.push(parade, locker);
     return S;
   }
+  /* ---- draft lottery night (LT-1): replays the stored lottery of the save, or simulates a what-if lottery ---- */
+  modes.lt = {
+    label: 'Draft lottery',
+    years: () => C.allSeasons,
+    extras: async y => {
+      let has = false; try { has = (await HubDB.all('misc')).some(r => r.src === 'draftLotteryResults' && r.v && r.v.season === y && FBGMLottery.stored(r.v).length); } catch (e) { has = false; }
+      return [{ id: 'how', label: 'Lottery', options: [{ v: 'stored', t: 'Replay the stored result' + (has ? '' : ' (none stored for this season)') }, { v: 'sim', t: 'Simulate a new lottery (with the odds of your league)' }], def: has ? 'stored' : 'sim' }];
+    },
+    build: async (y, ex) => {
+      let rows = [], stored = false, pl = null;
+      if (ex && ex.how !== 'sim') { try { const r = (await HubDB.all('misc')).filter(q => q.src === 'draftLotteryResults' && q.v && q.v.season === y).map(q => q.v)[0]; if (r) { rows = FBGMLottery.stored(r); stored = rows.length > 0; } } catch (e) { rows = []; } }
+      if (!rows.length) {
+        const order = C.teams.map(t => { const s = (t.seasons || []).find(x => x.season === y), g = s ? (s.won || 0) + (s.lost || 0) + (s.tied || 0) : 0; return { tid: t.tid, g, pct: g ? ((s.won || 0) + (s.tied || 0) / 2) / g : 1 }; }).filter(r => r.g > 0).sort((a, b) => a.pct - b.pct || a.tid - b.tid);
+        if (order.length < 4) return { scenes: [sc('none', 8000, '', '<div class="kick">Draft lottery</div><div class="mid">Not enough teams with games in ' + y + '</div>')], ticker: 'Draft lottery ·' };
+        let recs = [], dt = null; try { recs = (await HubDB.all('misc')).filter(q => q.src === 'draftLotteryResults' && q.v).map(q => q.v); const g = ((await HubDB.get('meta', 'gameAttributes')) || {}).v || {}; dt = FBGMTransform.attr(g.draftType, y); } catch (e) { recs = []; }
+        pl = FBGMLottery.plan(recs, dt); rows = FBGMLottery.simulate(order, Math.random, pl);
+      }
+      const n = rows.length, byPick = rows.slice().sort((a, b) => a.pick - b.pick), tot = rows.reduce((a, r) => a + r.chances, 0) || 1, mv = r => r.moved > 0 ? `<span class="ok">▲${r.moved}</span>` : r.moved < 0 ? `<span class="bad">▼${-r.moved}</span>` : '';
+      const S = [ident('Draft lottery'), sc('title', 7000, 'Draft lottery · ' + y, `<div class="kick">The ${y} draft</div><div class="big">Draft lottery</div><div class="sm">${n} teams in the draw · ${stored ? 'the result stored in your save' : 'a simulation with ' + C.esc(pl ? pl.src : 'the odds of the game')}</div>`,
+        [[C.H1, `Good evening and welcome to the draft lottery for ${y}. I'm ${C.H1.n}.`], [C.H2, `${stored ? 'This is the draw as it happened in your league.' : 'This is a simulation: the odds are ours, not the game\'s.'} ${n} teams, and everything on the line.`]], { confetti: 1 })];
+      const top = rows.slice().sort((a, b) => b.chances - a.chances || a.exp - b.exp).slice(0, 8);
+      if (tot > 1 || stored) S.push(sc('odds', 11000, 'The odds', `<div class="kick">Best odds at the first pick</div><div class="lst" style="width:70cqw;font-size:1.9cqw">${top.map(r => `<div style="display:flex;align-items:center;gap:1.4cqw;margin:.5cqw 0">${C.LZ(r.tid, 30, y)}<span style="width:22cqw">${C.esc(C.nm(r.tid))}</span><i style="display:block;height:1.4cqw;width:${Math.max(1, r.chances / (top[0].chances || 1) * 24)}cqw;background:var(--g1);border-radius:1cqw"></i><b>${(r.chances / tot * 100).toFixed(1)}%</b></div>`).join('')}</div>`,
+        [[C.H2, `${C.nm(top[0].tid)} enter with the best chance at the first pick, ${(top[0].chances / tot * 100).toFixed(1)} percent.`]]));
+      const low = byPick.filter(r => r.pick > 3).reverse();
+      for (let i = 0; i < low.length; i += 4) { const g = low.slice(i, i + 4); S.push(sc('g' + i, 8500, (g.length > 1 ? 'Picks ' + g[0].pick + ' to ' + g[g.length - 1].pick : 'Pick ' + g[0].pick), `<div class="kick">Pick${g.length > 1 ? 's ' + g[0].pick + ' to ' + g[g.length - 1].pick : ' ' + g[0].pick}</div><div class="row" style="gap:3cqw;align-items:flex-start">${g.map(r => `<div class="tmc">${C.LZ(r.tid, 80, y)}<b style="font-size:2.2cqw">#${r.pick}</b><div class="mid" style="font-size:1.9cqw">${C.esc(C.nm(r.tid))}</div><small>${mv(r)}${r.orig !== r.tid && C.T[r.orig] ? ' · pick from ' + C.esc(C.ab(r.orig)) : ''}</small></div>`).join('')}</div>`,
+        [[i % 8 ? C.H2 : C.H1, g.map(r => `at number ${r.pick}, ${C.nm(r.tid)}`).join('; ') + '.']])); }
+      byPick.filter(r => r.pick <= 3).reverse().forEach(r => { const first = r.pick === 1; S.push(sc('p' + r.pick, first ? 12000 : 9500, 'Pick ' + r.pick, `<div class="kick">With the ${ordS(r.pick)} pick</div><div class="sus">${first ? 'The first pick goes to…' : 'The pick goes to…'}</div><div class="row" style="margin-top:1.4cqw">${C.LZ(r.tid, 160, y)}</div><div class="mid">${C.esc(C.nm(r.tid))}</div><div class="sm">${r.moved > 0 ? 'Moved up ' + r.moved + ' place' + (r.moved === 1 ? '' : 's') + ' from #' + r.exp + ' in the odds' : r.moved < 0 ? 'Fell ' + (-r.moved) + ' place' + (r.moved === -1 ? '' : 's') + ' from #' + r.exp + ' in the odds' : 'Right where the odds put them'}</div>`,
+        [[first ? C.H1 : C.H2, `With the ${ordS(r.pick)} pick in the ${y} draft: ${C.nm(r.tid)}.${r.moved > 1 ? ' They jumped ' + r.moved + ' spots.' : ''}`]], { confetti: first ? 2 : 0, fan: first ? 'big' : undefined })); });
+      const up = byPick.slice().sort((a, b) => b.moved - a.moved)[0], dn = byPick.slice().sort((a, b) => a.moved - b.moved)[0];
+      if (up && dn && (up.moved > 0 || dn.moved < 0)) S.push(sc('mv', 9000, 'Winners and losers', `<div class="kick">Winners and losers of the night</div><div class="row" style="gap:6cqw;align-items:flex-start">${up.moved > 0 ? `<div class="tmc">${C.LZ(up.tid, 80, y)}<b style="font-size:2.2cqw;color:var(--g1)">Biggest jump</b><div class="mid" style="font-size:2cqw">${C.esc(C.nm(up.tid))}</div><small>#${up.exp} → #${up.pick} (▲${up.moved})</small></div>` : ''}${dn.moved < 0 ? `<div class="tmc">${C.LZ(dn.tid, 80, y)}<b style="font-size:2.2cqw;color:#ffb3bd">Biggest fall</b><div class="mid" style="font-size:2cqw">${C.esc(C.nm(dn.tid))}</div><small>#${dn.exp} → #${dn.pick} (▼${-dn.moved})</small></div>` : ''}</div>`,
+        [[C.H2, `${up.moved > 0 ? C.nm(up.tid) + ' were the big winners, up ' + up.moved + '.' : ''} ${dn.moved < 0 ? C.nm(dn.tid) + ' slipped ' + (-dn.moved) + ' spots.' : ''}`]]));
+      S.push(sc('board', 12000, 'The draft order', `<div class="kick">The draft order</div><div class="lst" style="columns:2;gap:5cqw;font-size:1.7cqw">${byPick.slice(0, 16).map(r => `<div><b>${r.pick}.</b> ${C.esc(C.nm(r.tid))} ${mv(r)}</div>`).join('')}</div>`, [[C.H1, `That is the order. The ${y} draft is set.`]], { confetti: 1 }));
+      return { scenes: S, ticker: 'DRAFT LOTTERY ' + y + ' · ' + byPick.slice(0, 5).map(r => r.pick + '. ' + C.ab(r.tid)).join(' · ') + ' ·' };
+    }
+  };
+  /* ---- fantasy championship night (FL-3): the result of a fantasy league the owner has played to the end (stored by fleague.html in the world data) ---- */
+  const flLeagues = () => { const o = C.World.get('fleagues', {}); return Object.values(o).filter(l => l && l.res && l.res.champion).sort((a, b) => (b.season || 0) - (a.season || 0)); };
+  modes.fl = {
+    label: 'Fantasy championship',
+    years: () => { const y = [...new Set(flLeagues().map(l => l.season))]; return y.length ? y : C.allSeasons; },
+    extras: async y => { const L = flLeagues().filter(l => l.season === y); return L.length > 1 ? [{ id: 'lg', label: 'League', options: L.map(l => ({ v: l.id, t: l.name })), def: L[0].id }] : []; },
+    build: async (y, ex) => {
+      const L = flLeagues().filter(l => l.season === y && (!ex || !ex.lg || l.id === ex.lg))[0];
+      if (!L) return { scenes: [sc('none', 9000, '', '<div class="kick">Fantasy championship</div><div class="mid">No finished fantasy league for ' + y + '</div><div class="sm">Play a fantasy league to its final in Fantasy league, then come back.</div>')], ticker: 'Fantasy championship ·' };
+      const R = L.res, f = R.final, top = (R.table || []).slice(0, 4), f1 = x => (Math.round(x * 10) / 10).toFixed(1);
+      const S = [ident('Fantasy championship'), sc('title', 7500, 'Fantasy championship · ' + y, `<div class="kick">${C.esc(L.name)} · ${y}</div><div class="big">Fantasy championship</div><div class="sm">${(R.table || []).length} managers · four reach the playoffs</div>`,
+        [[C.H1, `Welcome to the championship night of ${L.name}, season ${y}. I'm ${C.H1.n}.`], [C.H2, `Ten managers started. Four are left, and one will lift the trophy.`]], { confetti: 1 }),
+      sc('seeds', 10000, 'The four seeds', `<div class="kick">The playoff field</div><div class="lst" style="width:66cqw;font-size:2cqw">${top.map((r, i) => `<div style="display:flex;gap:1.6cqw;align-items:center;margin:.7cqw 0"><b style="width:3cqw;color:var(--g1)">${i + 1}</b><span style="flex:1">${C.esc(r.n)}${r.you ? ' (you)' : ''}</span><span>${r.w}–${r.l}${r.t ? '–' + r.t : ''}</span><b>${f1(r.pf)}</b></div>`).join('')}</div><div class="sm">Record and points for</div>`, [[C.H2, `The top seed is ${top[0] ? top[0].n : 'unknown'}, ${top[0] ? top[0].w + ' wins' : ''}.`]])];
+      (R.semis || []).forEach((m, i) => S.push(sc('sf' + i, 9000, 'Semi-final ' + (i + 1), `<div class="kick">Semi-final ${i + 1}</div><div class="row" style="gap:5cqw;align-items:center"><div class="tmc"><div class="mid" style="font-size:3cqw">${C.esc(m.a)}</div><b style="font-size:5cqw;color:${m.pa > m.pb ? 'var(--g1)' : '#fff'}">${f1(m.pa)}</b></div><span class="vsx">VS</span><div class="tmc"><div class="mid" style="font-size:3cqw">${C.esc(m.b)}</div><b style="font-size:5cqw;color:${m.pb > m.pa ? 'var(--g1)' : '#fff'}">${f1(m.pb)}</b></div></div>`, [[i % 2 ? C.H2 : C.H1, `${m.pa >= m.pb ? m.a : m.b} advance, ${f1(Math.max(m.pa, m.pb))} to ${f1(Math.min(m.pa, m.pb))}.`]])));
+      S.push(sc('final', 11000, 'The final', `<div class="kick">The final</div><div class="row" style="gap:5cqw;align-items:center"><div class="tmc"><div class="mid" style="font-size:3.2cqw">${C.esc(f.a)}</div><b style="font-size:6cqw;color:${f.pa > f.pb ? 'var(--g1)' : '#fff'}">${f1(f.pa)}</b></div><span class="vsx">VS</span><div class="tmc"><div class="mid" style="font-size:3.2cqw">${C.esc(f.b)}</div><b style="font-size:6cqw;color:${f.pb > f.pa ? 'var(--g1)' : '#fff'}">${f1(f.pb)}</b></div></div>`, [[C.H1, `The final: ${f.a} against ${f.b}.`], [C.H2, `${R.champion} win it, ${f1(Math.max(f.pa, f.pb))} to ${f1(Math.min(f.pa, f.pb))}.`]]));
+      S.push(sc('trophy', 14000, 'The champion', `<div class="kick">Fantasy champion ${y}</div><div class="sus">🏆</div><div class="big" style="font-size:7cqw">${C.esc(R.champion)}</div><div class="sm">${C.esc((R.table.find(r => r.n === R.champion) || {}).bio || '')}</div>`, [[C.H1, `Your fantasy champion of ${y}: ${R.champion}.`], [C.H2, `Congratulations. See you next season.`]], { confetti: 3, fan: 'big' }));
+      return { scenes: S, ticker: 'FANTASY CHAMPIONSHIP ' + y + ' · CHAMPION: ' + R.champion.toUpperCase() + ' ·' };
+    }
+  };
   const api = { init: c => { C = c; return api; }, modes, sbExtra, coachAt, ANS };
   if (typeof module !== 'undefined') module.exports = api; else root.TVPacks = api;
 })(typeof self !== 'undefined' ? self : this);
