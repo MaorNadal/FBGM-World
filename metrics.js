@@ -2,6 +2,8 @@
    Every definition uses formulas confirmed against the game (appendix A of the specification) or plain per-game and per-drive ratios of stored counters.
    A metric that cannot be computed from a record returns null and that record is left out of the chart (never a made-up zero). */
 (function (root) {
+  const poOk = (a, m) => m === 'both' || m === 2 || m === '2' || !!a === !!m;
+  const PI = root.FBGMPlayerInfo || (typeof require !== 'undefined' ? require('./pinfo.js') : null);
   const D = (a, b) => b ? a / b : null, n = v => +v || 0, cl = v => Math.max(0, Math.min(2.375, v));
   const rating = (c, a, y, t, i) => a ? (cl((c / a - .3) * 5) + cl((y / a - 3) * .25) + cl(t / a * 20) + cl(2.375 - i / a * 25)) / 6 * 100 : null;
   /* ---------- team metrics: c = { s: stats row, ss: season record, pg: {g,pf,pa}, elo, ro: {age,top,pay,n} } ---------- */
@@ -84,15 +86,15 @@
   /* sum of a player's stat rows of one season (stints with several teams are added; the team shown is the last one) */
   function playerSeason(p, season, po) {
     let e = null;
-    for (const s of p.stats || []) { if (s.season !== season || !!s.playoffs !== !!po) continue; e = e || { tid: s.tid }; e.tid = s.tid; for (const k of SUM) e[k] = (e[k] || 0) + (+s[k] || 0); }
+    for (const s of p.stats || []) { if (s.season !== season || !poOk(s.playoffs, po)) continue; e = e || { tid: s.tid }; e.tid = s.tid; for (const k of SUM) e[k] = (e[k] || 0) + (+s[k] || 0); }
     return e;
   }
   function playerRows(players, season, po, o) {
     o = o || {}; const out = [];
     for (const p of players) {
       const e = playerSeason(p, season, po); if (!e) continue;
-      const rs = (p.ratings || []).filter(r => r.season <= season), r = rs[rs.length - 1] || {};
-      const row = Object.assign({ id: p.pid, pid: p.pid, season, name: ((p.firstName || '') + ' ' + (p.lastName || '')).trim(), pos: r.pos || '', ovr: r.ovr == null ? null : r.ovr, pot: r.pot == null ? null : r.pot, age: p.born && p.born.year != null ? season - p.born.year : null, amount: p.contract ? p.contract.amount : null, face: p.face, player: p }, e);
+      const x = PI.row(p, season);
+      const row = Object.assign({ id: p.pid, pid: p.pid, season, name: ((p.firstName || '') + ' ' + (p.lastName || '')).trim(), pos: x.pos, ovr: x.ovr, pot: x.pot, age: x.age, country: x.country, iso: x.iso, college: x.college, amount: p.contract ? p.contract.amount : null, face: p.face, player: p }, e);
       if (o.pos && row.pos !== o.pos) continue; if (o.minGp && !(row.gp >= o.minGp)) continue;
       const v = {}; for (const m of PLAYER) { let x = null; try { x = m.f(row); } catch (z) {} v[m.k] = x != null && isFinite(x) ? x : null; }
       row.v = v; out.push(row);
@@ -104,13 +106,13 @@
   function slim(p) {
     const st = [];
     for (const s of p.stats || []) { const r = { season: s.season, playoffs: !!s.playoffs, tid: s.tid }; for (const k of SUM) if (s[k]) r[k] = s[k]; st.push(r); }
-    return { pid: p.pid, firstName: p.firstName, lastName: p.lastName, tid: p.tid, born: p.born ? { year: p.born.year } : null, contract: p.contract ? { amount: p.contract.amount, exp: p.contract.exp } : null, face: p.face, jerseyNumber: p.jerseyNumber,
-      injury: p.injury ? { type: p.injury.type, gamesRemaining: p.injury.gamesRemaining } : null, hof: p.hof, ratings: (p.ratings || []).map((r, i, A) => { const o = { season: r.season, pos: r.pos, ovr: r.ovr, pot: r.pot }; if (i === A.length - 1) for (const k of SKILLS) if (r[k] != null) o[k] = r[k]; return o; }), stats: st, awards: (p.awards || []).map(a => ({ type: a.type, season: a.season })), draft: p.draft ? { year: p.draft.year, round: p.draft.round, pick: p.draft.pick, tid: p.draft.tid, ovr: p.draft.ovr, pot: p.draft.pot } : null };
+    return { pid: p.pid, firstName: p.firstName, lastName: p.lastName, tid: p.tid, born: p.born ? { year: p.born.year, loc: p.born.loc } : null, college: p.college, hgt: p.hgt, weight: p.weight, contract: p.contract ? { amount: p.contract.amount, exp: p.contract.exp } : null, face: p.face, jerseyNumber: p.jerseyNumber,
+      injury: p.injury ? { type: p.injury.type, gamesRemaining: p.injury.gamesRemaining } : null, hof: p.hof, ratings: (p.ratings || []).map((r, i, A) => { const o = { season: r.season, pos: r.pos, ovr: r.ovr, pot: r.pot }; if (i === A.length - 1) for (const k of SKILLS) if (r[k] != null) o[k] = r[k]; return o; }), stats: st, awards: (p.awards || []).map(a => ({ type: a.type, season: a.season })), draft: p.draft ? { year: p.draft.year, round: p.draft.round, pick: p.draft.pick, tid: p.draft.tid, originalTid: p.draft.originalTid, ovr: p.draft.ovr, pot: p.draft.pot } : null };
   }
   /* roster aggregates of every team from current player records */
   function rosterAgg(players, season) {
     const by = {};
-    for (const p of players) { if (p.tid == null || p.tid < 0) continue; const rs = (p.ratings || []).filter(r => r.season <= season), r = rs[rs.length - 1] || {}; (by[p.tid] = by[p.tid] || []).push({ age: p.born && p.born.year != null ? season - p.born.year : null, ovr: r.ovr || 0, amount: p.contract ? +p.contract.amount || 0 : 0 }); }
+    for (const p of players) { if (p.tid == null || p.tid < 0) continue; const x = PI.row(p, season); (by[p.tid] = by[p.tid] || []).push({ age: x.age, ovr: x.ovr || 0, amount: p.contract ? +p.contract.amount || 0 : 0 }); }
     const out = {};
     for (const t in by) { const L = by[t], ag = L.filter(x => x.age != null), top = L.slice().sort((a, b) => b.ovr - a.ovr).slice(0, 22); out[t] = { n: L.length, age: ag.length ? ag.reduce((a, x) => a + x.age, 0) / ag.length : null, top: top.length ? top.reduce((a, x) => a + x.ovr, 0) / top.length : null, pay: L.reduce((a, x) => a + x.amount, 0) }; }
     return out;

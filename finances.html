@@ -1,0 +1,39 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>League finances · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>.sc{overflow-x:auto}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}td{white-space:nowrap}.pos{color:var(--ok)}.neg{color:var(--bad)}.st{display:flex;height:22px;border-radius:8px;overflow:hidden;margin:6px 0}.st i{display:block;height:100%}.lg2{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--mu);margin-bottom:10px}.lg2 b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}.sz{height:420px}</style></head><body>
+<main class="wrap"><div class="hero"><small>League</small><h1>League finances</h1><p id="sub">Loading…</p></div>
+<div class="card"><div class="ctl"><div><label for="y">Season</label><select id="y"></select></div><div><label for="o">Order by</label><select id="o"><option value="profit">Profit</option><option value="rev">Revenue</option><option value="exp">Expenses</option><option value="payroll">Payroll</option><option value="cash">Cash</option><option value="pct">Win percentage</option></select></div><div><label for="t">Team breakdown</label><select id="t"></select></div></div><p class="mu" style="margin-bottom:0">Read from the nested season records of each team: revenues and expenses by category, cash, payroll. Amounts are in millions of dollars; the profit is revenue minus expenses of the season as stored.</p></div>
+<div class="grid" id="ti"></div>
+<div class="card"><h2>Payroll against winning</h2><div id="sx" class="sz"></div></div>
+<div class="card"><h2 id="bh">Team breakdown</h2><div id="bd"></div></div>
+<div class="card"><h2>League average over the seasons</h2><div id="ln"></div></div>
+<div class="card sc" id="out"></div><div class="card" id="fl" hidden></div></main>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="metrics.js"></script><script src="finance.js"></script><script src="leaguedata.js"></script><script src="viz.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),V=Viz,esc=V.esc,F=FBGMFinance,M=F.money;const s=await HubDB.summary();
+if(!s){$('out').innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+Hub.setTitle('Finances');
+try{const teams=(await LeagueData.teams()).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name));Logo.init(teams);const T=Object.fromEntries(teams.map(t=>[t.tid,t]));
+ const fl=F.fields(teams);
+ if(!fl){$('sub').textContent='No finance data found';$('out').innerHTML='<p class="mu">No team season holds revenues, expenses or cash. Open Tools / Diagnostics and send the report, so the real field names can be added.</p>';return}
+ const ys=[...new Set(teams.flatMap(t=>(t.seasons||[]).filter(x=>x.revenues||x.expenses).map(x=>x.season)))].sort((a,b)=>b-a);$('y').innerHTML=ys.map(y=>`<option>${y}</option>`).join('');
+ $('t').innerHTML=teams.map(t=>`<option value="${t.tid}">${esc((t.region+' '+t.name).trim())}</option>`).join('');const own=teams.find(t=>t.tid===s.userTid);if(own)$('t').value=own.tid;
+ const COL=['#0b6cff','#ffb81c','#27d17f','#ff5468','#8f6bff','#18c2d8','#ff8a3d','#c0c8d6'],cls=v=>v==null?'':v<0?'neg':'pos';
+ const sv=(r,k)=>r[k]==null?-Infinity:r[k];
+ function draw(){const y=+$('y').value,R=F.table(teams,y).filter(r=>r.rev!=null||r.exp!=null),o=$('o').value;R.sort((a,b)=>sv(b,o)-sv(a,o));
+  const sm=k=>R.reduce((a,r)=>a+(r[k]||0),0),n=R.length||1;
+  $('sub').textContent=y+' · '+R.length+' teams · average revenue '+M(sm('rev')/n)+' · average profit '+M(sm('profit')/n);
+  $('ti').innerHTML=[['Average revenue',M(sm('rev')/n)],['Average expenses',M(sm('exp')/n)],['Average profit',M(sm('profit')/n)],['Teams in profit',R.filter(r=>r.profit>0).length+' of '+R.length],['Highest cash',M(Math.max(...R.map(r=>r.cash==null?-Infinity:r.cash)))]].map(x=>`<div class="tile"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
+  $('out').innerHTML='<table><tr><th>Team</th><th class="n">W–L</th><th class="n">Revenue</th><th class="n">Expenses</th><th class="n">Profit</th><th class="n">Payroll</th><th class="n">Cash</th><th class="n">Hype</th><th class="n">Pop.</th><th class="n">Attendance</th></tr>'+R.map(r=>`<tr><td>${Logo.t(r.tid,18,y)} <a href="team.html#${r.tid}">${esc(r.name)}</a></td><td class="n">${r.w}–${r.l}${r.t?'–'+r.t:''}</td><td class="n">${M(r.rev)}</td><td class="n">${M(r.exp)}</td><td class="n ${cls(r.profit)}">${M(r.profit)}</td><td class="n">${M(r.payroll)}</td><td class="n ${cls(r.cash)}">${M(r.cash)}</td><td class="n">${r.hype==null?'–':r.hype.toFixed(2)}</td><td class="n">${r.pop==null?'–':r.pop.toFixed(1)}</td><td class="n">${r.att==null?'–':Math.round(r.att).toLocaleString('en-US')}</td></tr>`).join('')+'</table><p><button class="btn ghost" id="cv">Export CSV</button></p>';
+  $('cv').onclick=()=>V.csv('finances-'+y+'.csv',['Team','W','L','Revenue ($K)','Expenses ($K)','Profit ($K)','Payroll ($K)','Cash ($K)'],R.map(r=>[r.name,r.w,r.l,r.rev,r.exp,r.profit,r.payroll,r.cash]));
+  const pts=R.filter(r=>r.payroll!=null&&r.pct!=null&&r.games>0).map(r=>({id:r.tid,x:r.payroll/1000,y:r.pct*100,label:r.name,short:r.abbrev,color:((T[r.tid]||{}).colors||[])[0],row:r}));
+  V.scatter($('sx'),{points:pts,xl:'Payroll ($M)',yl:'Win percentage',xFmt:v=>'$'+Math.round(v)+'M',yFmt:v=>v.toFixed(0)+'%',mean:true,quad:{tr:'Pays a lot, wins a lot',bl:'Pays little, wins little'},size:30,
+   marker:(p,z)=>Logo.t(p.id,z,y)||`<i style="background:${p.color||'#ffb81c'}"></i>`,crest:p=>T[p.id]?Logo.crest(T[p.id],40):'',
+   card:p=>V.card({title:p.label,sub:y+' · '+p.row.w+'–'+p.row.l,c1:p.color,c2:((T[p.id]||{}).colors||[])[1],logo:Logo.t(p.id,38,y),big:[{label:'Payroll',value:M(p.row.payroll)},{label:'Profit',value:M(p.row.profit)}],rows:[{label:'Revenue',value:M(p.row.rev)},{label:'Expenses',value:M(p.row.exp)},{label:'Cash',value:M(p.row.cash)}],href:'team.html#'+p.id,hrefLabel:'Team page'}),title:'Payroll against win percentage, '+y});
+  team()}
+ function team(){const y=+$('y').value,tid=+$('t').value,r=F.table(teams,y).find(x=>x.tid===tid);$('bh').textContent='Team breakdown · '+(r?r.name:'');
+  if(!r){$('bd').innerHTML='<p class="mu">This team has no record for the season.</p>';return}
+  const one=(title,p,tot)=>{const k=Object.keys(p).filter(x=>p[x]).sort((a,b)=>p[b]-p[a]);return`<h3 style="margin:10px 0 4px;font-size:14px">${title} · ${M(tot)}</h3><div class="st">${k.map((x,i)=>`<i title="${esc(x)}: ${M(p[x])}" style="width:${(p[x]/(tot||1)*100).toFixed(2)}%;background:${COL[i%COL.length]}"></i>`).join('')}</div><div class="lg2">${k.map((x,i)=>`<span><b style="background:${COL[i%COL.length]}"></b>${esc(x)} ${M(p[x])} (${(p[x]/(tot||1)*100).toFixed(0)}%)</span>`).join('')}</div>`};
+  $('bd').innerHTML=(r.rev!=null?one('Revenue',r.revParts,r.rev):'')+(r.exp!=null?one('Expenses',r.expParts,r.exp):'')||'<p class="mu">No categories stored for this season.</p>'}
+ const S=F.series(teams);
+ V.lines($('ln'),[['rev','Revenue','#27d17f'],['exp','Expenses','#ff5468'],['profit','Profit','#ffb81c']].map(([k,l,c])=>({id:k,label:l,c1:c,pts:S.map(e=>[e.season,e[k]/1000])})),{hl:'profit',fmt:v=>'$'+v.toFixed(1)+'M',title:'League average per team ($M)'});
+ $('fl').hidden=false;$('fl').innerHTML='<h2>Fields found in the save</h2><p class="mu" style="margin:0">Revenue: '+esc(fl.revenues.join(', ')||'none')+'. Expenses: '+esc(fl.expenses.join(', ')||'none')+'. Shown so a different shape than assumed is visible.</p>';
+ $('y').onchange=draw;$('o').onchange=draw;$('t').onchange=team;draw()
+}catch(e){$('out').innerHTML='<div class="card err"><b>Could not build the page.</b><p class="mu">'+Viz.esc(e.message)+'</p></div>';console.error(e)}})()</script></body></html>

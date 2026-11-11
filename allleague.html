@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>All-league teams and awards · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>.sc{overflow-x:auto}td{white-space:nowrap}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}.aw{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}.aw a,.aw div.h{display:block;background:var(--bg3);border-radius:14px;padding:12px;border-top:3px solid var(--c2)}.aw span{color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.aw b{display:block;font-size:17px;line-height:1.2}.aw .av{margin:0 8px 0 0}.tm{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.tm .h{background:var(--bg3);border-radius:14px;padding:12px;border-top:3px solid var(--c1)}.tm h3{margin:0 0 6px;font-size:15px}.pl{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #1e2b40}.pl .ps{width:34px;color:var(--mu);font-size:12px;font-weight:700}</style></head><body>
+<main class="wrap"><div class="hero"><small>Records</small><h1>All-league teams and awards</h1><p id="sub">Loading…</p></div>
+<div class="card"><div class="ctl"><div><label for="y">Season</label><select id="y"></select></div></div></div>
+<div class="card"><h2>Awards</h2><div class="aw" id="aw"></div></div>
+<div id="tm"></div>
+<div class="card sc"><h2>Most all-league selections, all seasons</h2><div id="ct"></div></div></main>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="metrics.js"></script><script src="leaguedata.js"></script><script src="faces.js"></script><script src="viz.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),esc=Viz.esc;const s=await HubDB.summary();
+if(!s){$('aw').innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+Hub.setTitle('All-league');
+try{const teams=await LeagueData.teams();Logo.init(teams);const T=Object.fromEntries(teams.map(t=>[t.tid,t]));
+ const A=(await HubDB.all('misc')).filter(r=>r.src==='awards'&&r.v).map(r=>r.v).sort((a,b)=>(b.season||0)-(a.season||0));
+ if(!A.length){$('sub').textContent='No awards collection in this save';$('aw').innerHTML='<p class="mu">The save holds no per-season awards records (the awards collection is empty or missing). The Awards page reads awards from the players instead.</p>';return}
+ $('y').innerHTML=A.map(a=>`<option>${a.season}</option>`).join('');
+ const isP=v=>v&&typeof v==='object'&&!Array.isArray(v)&&(v.pid!=null||v.name),lab=k=>k.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase()),nm=p=>p.name||((p.firstName||'')+' '+(p.lastName||'')).trim()||('Player '+p.pid);
+ const teamsOf=a=>Object.keys(a).filter(k=>Array.isArray(a[k])&&a[k].length&&a[k].every(x=>x&&typeof x==='object'&&(Array.isArray(x.players)||x.title!=null)));
+ const cnt={};A.forEach(a=>teamsOf(a).forEach(k=>{if(!/league/i.test(k))return;a[k].forEach(t=>(t.players||[]).forEach(p=>{if(p.pid==null)return;const e=cnt[p.pid]=cnt[p.pid]||{pid:p.pid,name:nm(p),n:0,first:0,pos:p.pos,tid:p.tid};e.n++;if(/first/i.test(t.title||''))e.first++;e.tid=p.tid}))}));
+ function draw(){const a=A.find(x=>x.season===+$('y').value)||A[0];$('sub').textContent=A.length+' seasons of awards · '+a.season;
+  const ps=Object.keys(a).filter(k=>isP(a[k]));
+  $('aw').innerHTML=ps.length?ps.map(k=>{const p=a[k];return`<a href="${p.pid!=null?'player.html?pid='+p.pid:'#'}"><span>${esc(lab(k))}</span><b>${esc(nm(p))}</b>${p.tid!=null&&T[p.tid]?Logo.t(p.tid,18,a.season)+' '+esc(T[p.tid].abbrev):''} ${esc(p.pos||'')}</a>`}).join(''):'<p class="mu">This season record has no single-winner awards. Keys: '+esc(Object.keys(a).join(', '))+'</p>';
+  const tk=teamsOf(a);$('tm').innerHTML=tk.map(k=>`<div class="card"><h2>${esc(lab(k))}</h2><div class="tm">${a[k].map(t=>`<div class="h"><h3>${esc(t.title||'')}</h3>${(t.players||[]).map(p=>`<div class="pl"><span class="ps">${esc(p.pos||'')}</span>${p.tid!=null&&T[p.tid]?Logo.t(p.tid,18,a.season):''}${p.pid!=null?`<a href="player.html?pid=${p.pid}">${esc(nm(p))}</a>`:esc(nm(p))}</div>`).join('')}</div>`).join('')}</div></div>`).join('')}
+ const C=Object.values(cnt).sort((x,y)=>y.n-x.n||y.first-x.first).slice(0,30);
+ $('ct').innerHTML=C.length?'<table><tr><th>Player</th><th>Pos</th><th>Last team</th><th class="n">Selections</th><th class="n">First team</th></tr>'+C.map(c=>`<tr><td><a href="player.html?pid=${c.pid}">${esc(c.name)}</a></td><td>${esc(c.pos||'')}</td><td>${c.tid!=null&&T[c.tid]?Logo.t(c.tid,18)+' '+esc(T[c.tid].abbrev):''}</td><td class="n"><b>${c.n}</b></td><td class="n">${c.first}</td></tr>`).join('')+'</table>':'<p class="mu">No all-league lists were found in the awards records.</p>';
+ $('y').onchange=draw;draw()
+}catch(e){$('aw').innerHTML='<div class="card err"><b>Could not build the page.</b><p class="mu">'+Viz.esc(e.message)+'</p></div>';console.error(e)}})()</script></body></html>

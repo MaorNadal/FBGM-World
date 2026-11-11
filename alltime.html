@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>All-time records · FBGM Hub</title><link rel="stylesheet" href="hub.css"></head><body>
 <main class="wrap"><div class="hero"><small>Records and history</small><h1>All-time records</h1><p id="sub">Loading…</p></div>
 <div class="card"><div class="seg" id="tabs"><button data-v="s">Single season</button><button data-v="c">Career</button><button data-v="g">Single game</button></div>
-<div class="ctl" style="margin-top:12px"><div><label for="st">Statistic</label><select id="st"></select></div><div><label for="po">Games</label><select id="po"><option value="0">Regular season</option><option value="1">Playoffs</option></select></div><div id="wa"><label for="ac">Players</label><select id="ac"><option value="">All players</option><option value="1">Active only</option><option value="0">Retired only</option></select></div></div>
+<div class="ctl" style="margin-top:12px"><div><label for="st">Statistic</label><select id="st"></select></div><div><label for="po">Games</label><select id="po"><option value="0">Regular season</option><option value="1">Playoffs</option><option value="2">Regular season + playoffs</option></select></div><div id="wa"><label for="ac">Players</label><select id="ac"><option value="">All players</option><option value="1">Active only</option><option value="0">Retired only</option></select></div></div>
 <p class="mu" id="nt" style="margin-bottom:0"></p></div>
 <div class="card" id="out"></div></main>
 <script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="elo.js"></script><script src="metrics.js"></script><script src="leaguedata.js"></script><script src="fantasy.js"></script><script src="world.js"></script><script src="viz.js"></script>
@@ -15,7 +15,7 @@ const hash=new URLSearchParams(location.hash.slice(1));for(const k in st)if(hash
 $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{st.sc=b.dataset.v;fill();draw()});
 function fill(){const ks=st.sc==='g'?GK:KEYS;if(!ks.includes(st.st))st.st=ks[0];$('st').innerHTML=ks.map(k=>`<option value="${k}">${ML[k].label}</option>`).join('');$('st').value=st.st;$('po').value=st.po;$('ac').value=st.ac;$('wa').hidden=st.sc==='g';$('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.sc))}
 $('st').onchange=()=>{st.st=$('st').value;draw()};$('po').onchange=()=>{st.po=$('po').value;draw()};$('ac').onchange=()=>{st.ac=$('ac').value;draw()};
-function rowsFor(po){if(seasonRows[po])return seasonRows[po];const out=[];for(const p of P){const ss=[...new Set((p.stats||[]).filter(x=>!!x.playoffs===po).map(x=>x.season))];for(const y of ss){const r=M.playerRows([p],y,po)[0];if(r)out.push(r)}}return seasonRows[po]=out}
+function rowsFor(po){if(seasonRows[po])return seasonRows[po];const out=[];for(const p of P){const ss=[...new Set((p.stats||[]).filter(x=>po==='both'||!!x.playoffs===po).map(x=>x.season))];for(const y of ss){const r=M.playerRows([p],y,po)[0];if(r)out.push(r)}}return seasonRows[po]=out}
 const mine=r=>Object.assign({},r);
 function active(p){return p.tid>=0}
 function logoFor(tid,y){return Logo.t(tid,22,y)}
@@ -26,14 +26,14 @@ async function scanGames(){const key='fbgmhub_alltime_games',cache=World.get('al
   if(r.pssYds)add(po,'pssYds',r.pssYds,r);if(r.pssTD)add(po,'pssTD',r.pssTD,r);if(r.rusYds)add(po,'rusYds',r.rusYds,r);if(r.rusTD)add(po,'rusTD',r.rusTD,r);if(r.rec)add(po,'rec',r.rec,r);if(r.recYds)add(po,'recYds',r.recYds,r);if(r.recTD)add(po,'recTD',r.recTD,r);if(r.defSk)add(po,'sk',r.defSk,r);if(r.defInt)add(po,'dint',r.defInt,r);if(tk)add(po,'tck',tk,r);
   const f=FBGMFantasy.pts(r);if(f>0)add(po,'fp',Math.round(f*10)/10,r)});
  World.set('alltime_games',{at:s.importedAt,d:T});return T}
-async function draw(){writeHash();const m=ML[st.st],po=st.po==='1',per=po?'playoffs':'regular season';$('nt').textContent='';
+async function draw(){writeHash();const m=ML[st.st],po=({'0':false,'1':true,'2':'both'})[st.po],per=po==='both'?'regular season + playoffs':po?'playoffs':'regular season';$('nt').textContent='';
  try{if(!P){o.innerHTML='<p class="mu">Reading all players…</p>';P=await LeagueData.players()}
   let R=[];
   if(st.sc==='s'){const act=new Set(P.filter(active).map(p=>p.pid));R=rowsFor(po).filter(r=>r.v[st.st]!=null&&(st.ac===''||(st.ac==='1')===act.has(r.pid))).map(r=>({id:r.pid+'-'+r.season,label:r.name+' · '+r.season,value:r.v[st.st],c1:(TM[r.tid]&&TM[r.tid].colors||[])[0],logo:logoFor(r.tid,r.season),href:'player.html?pid='+r.pid}));$('nt').textContent='Best single seasons, '+per+'. '+(m.desc||'')}
   else if(st.sc==='c'){const by={};for(const r of rowsFor(po)){if(r.v[st.st]==null)continue;const e=by[r.pid]=by[r.pid]||{pid:r.pid,name:r.name,v:0,y0:r.season,y1:r.season,tid:r.tid,act:false};e.v+=r.v[st.st];e.y0=Math.min(e.y0,r.season);if(r.season>=e.y1){e.y1=r.season;e.tid=r.tid}}
    const act=new Set(P.filter(active).map(p=>p.pid));R=Object.values(by).filter(e=>st.ac===''||(st.ac==='1')===act.has(e.pid)).map(e=>({id:e.pid,label:e.name+' · '+e.y0+(e.y1>e.y0?'–'+e.y1:''),value:e.v,c1:(TM[e.tid]&&TM[e.tid].colors||[])[0],logo:logoFor(e.tid,e.y1),href:'player.html?pid='+e.pid}));$('nt').textContent='Career totals, '+per+', added over every season stored.'}
   else{o.innerHTML='<p class="mu">Reading box scores (first time only, then kept in your world data)…</p>';const T=await scanGames();pid=Object.fromEntries(P.map(p=>[p.pid,((p.firstName||'')+' '+(p.lastName||'')).trim()]));
-   R=(T[po?1:0][st.st]||[]).map((e,i)=>({id:i,label:(pid[e.pid]||'#'+e.pid)+' · '+e.season+' vs '+ab(e.opp),value:e.v,c1:(TM[e.tid]&&TM[e.tid].colors||[])[0],logo:logoFor(e.tid,e.season),href:'game.html?gid='+e.gid}));$('nt').textContent='Best single games, '+per+', all-star games excluded.'}
+   if(!T.b){T.b={};for(const k of Object.keys(T[0]))T.b[k]=[...T[0][k],...(T[1][k]||[])].sort((a,b)=>b.v-a.v).slice(0,15)}R=(T[po==='both'?'b':po?1:0][st.st]||[]).map((e,i)=>({id:i,label:(pid[e.pid]||'#'+e.pid)+' · '+e.season+' vs '+ab(e.opp),value:e.v,c1:(TM[e.tid]&&TM[e.tid].colors||[])[0],logo:logoFor(e.tid,e.season),href:'game.html?gid='+e.gid}));$('nt').textContent='Best single games, '+per+', all-star games excluded.'}
   V.bars(o,R,{top:25,better:'high',fmt:v=>M.fmt(m,v)});$('sub').textContent=m.label+' · '+(st.sc==='s'?'single season':st.sc==='c'?'career':'single game')+' · '+R.length.toLocaleString('en-US')+' entries ranked'}
  catch(e){o.innerHTML='<div class="card err"><b>The records could not be built.</b><p class="mu">'+esc(e.message)+'</p></div>';console.error(e)}Hub.setTitle('All-time')}
 function writeHash(){history.replaceState(0,'','#'+new URLSearchParams(st))}
