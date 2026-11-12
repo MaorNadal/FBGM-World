@@ -52,7 +52,7 @@
     else if (CAP.includes(last.toUpperCase()) && last.length === 2) iso = 'ca';
     else if (USN.includes(lo)) { iso = 'us'; state = last; }
     else for (const x of parts) { const y = x.toLowerCase(); if (BY[y]) { iso = BY[y]; break; } }
-    if (iso === 'us' && !state && parts.length > 1 && US.includes(parts[parts.length - 2].toUpperCase())) state = parts[parts.length - 2].toUpperCase();
+    if (iso === 'us' && !state && parts.length > 1) state = stateCode(parts[parts.length - 2]); /* 1.63: "Wisconsin, USA" names the state itself (full name or code) */
     if (iso === 'us') { state = stateCode(state) || (parts.length > 0 ? userCity()[parts[0].toLowerCase()] || CITYST[parts[0].toLowerCase()] || '' : ''); }
     name = iso ? nameOf(iso) : last;
     return cache[L] = { name, iso, state, raw: L };

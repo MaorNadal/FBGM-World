@@ -5,8 +5,8 @@
    Known limits: head-to-head needs every tied team to have played another tied team; common opponents have no minimum number of games; a wild-card tie inside one division is not narrowed to the division's best team first. */
 (function (root) {
   const DEFAULT = ['headToHead', 'divisionRecord', 'commonOpponents', 'confRecord', 'strengthOfVictory', 'strengthOfSchedule', 'marginOfVictory', 'coinFlip'];
-  const KEY = [[/head/i, 'h2h'], [/div/i, 'division'], [/common/i, 'common'], [/conf/i, 'conf'], [/margin|point|mov/i, 'mov'], [/victory/i, 'sov'], [/schedule/i, 'sos'], [/coin|random/i, 'coin']];
-  const NAME = { h2h: 'head to head', division: 'division record', common: 'common opponents', conf: 'conference record', sov: 'strength of victory', sos: 'strength of schedule', mov: 'margin of victory', coin: 'coin flip' };
+  const KEY = [[/head/i, 'h2h'], [/divWinner/i, 'divw'], [/div/i, 'division'], [/common/i, 'common'], [/conf/i, 'conf'], [/margin|point|mov/i, 'mov'], [/victory/i, 'sov'], [/schedule/i, 'sos'], [/coin|random/i, 'coin']];
+  const NAME = { divw: 'division winner', h2h: 'head to head', division: 'division record', common: 'common opponents', conf: 'conference record', sov: 'strength of victory', sos: 'strength of schedule', mov: 'margin of victory', coin: 'coin flip' };
   const sum = a => a[0] + a[1] + a[2], pct = a => sum(a) ? (a[0] + a[2] / 2) / sum(a) : 0;
   function criteria(list) {
     const out = [];
@@ -28,7 +28,9 @@
     }
     return { R, cd, season };
   }
-  const flip = (tid, season) => ((tid * 2654435761 + season * 97) >>> 0) % 1000003;
+  /* 1.63: the game's own coin flip (orderTeams.ts): uniformSeed(tid + season + won + winp), lower value wins */
+  const uniformSeed = n => { const x = Math.sin(n) * 10000; return x - Math.floor(x); };
+  const flip = (tid, season, r) => uniformSeed(tid + season + r[0] + pct(r));
   const CR = {
     h2h(g, C) { const s = {}; for (const a of g) { const t = [0, 0, 0]; for (const b of g) if (b !== a && C.R[a].opp[b]) C.R[a].opp[b].forEach((v, i) => t[i] += v); if (!sum(t)) return null; s[a] = pct(t); } return s; },
     division(g, C) { const d = C.cd[g[0]].did; if (d == null || g.some(a => C.cd[a].did !== d)) return null; const s = {}; for (const a of g) { if (!sum(C.R[a].div)) return null; s[a] = pct(C.R[a].div); } return s; },
@@ -41,6 +43,7 @@
     conf(g, C) { const s = {}; for (const a of g) { if (!sum(C.R[a].conf)) return null; s[a] = pct(C.R[a].conf); } return s; },
     sov(g, C) { const s = {}; for (const a of g) { let n = 0, v = 0; for (const o in C.R[a].opp) { const w = C.R[a].opp[o][0] + C.R[a].opp[o][2] / 2; n += w; v += w * pct(C.R[o].rec); } s[a] = n ? v / n : 0; } return s; },
     sos(g, C) { const s = {}; for (const a of g) { let n = 0, v = 0; for (const o in C.R[a].opp) { const c = sum(C.R[a].opp[o]); n += c; v += c * pct(C.R[o].rec); } s[a] = n ? v / n : 0; } return s; },
+    divw(g, C) { if (!C.dw) return null; const s = {}; for (const a of g) s[a] = C.dw.has(a) ? 1 : 0; return s; },
     mov(g, C) { const s = {}; for (const a of g) { const n = sum(C.R[a].rec); s[a] = n ? (C.R[a].pf - C.R[a].pa) / n : 0; } return s; }
   };
   /* order a group that is level on record: [{tid, why}] best first; why = the rule that put the team ahead of those still in the group */
@@ -55,16 +58,16 @@
         if (nx.length < cand.length) { cand = nx; why = NAME[c]; }
       }
       let pick = cand[0];
-      if (cand.length > 1) { pick = cand.slice().sort((a, b) => flip(a, C.season) - flip(b, C.season))[0]; why = NAME.coin; }
+      if (cand.length > 1) { pick = cand.slice().sort((a, b) => flip(a, C.season, C.R[a].rec) - flip(b, C.season, C.R[b].rec))[0]; why = NAME.coin; }
       out.push({ tid: pick, why }); rest = rest.filter(a => a !== pick);
     }
     if (rest.length) out.push({ tid: rest[0], why: '' });
     return out;
   }
   function rank(tids, C, crit) {
-    const by = tids.slice().sort((a, b) => pct(C.R[b].rec) - pct(C.R[a].rec) || a - b), out = [];
+    const wl = t => C.R[t].rec[0] - C.R[t].rec[1], same = (a, b) => Math.abs(pct(C.R[a].rec) - pct(C.R[b].rec)) < 1e-9 && wl(a) === wl(b), by = tids.slice().sort((a, b) => pct(C.R[b].rec) - pct(C.R[a].rec) || wl(b) - wl(a) || a - b), out = [];
     for (let i = 0; i < by.length;) {
-      let j = i; while (j < by.length && Math.abs(pct(C.R[by[j]].rec) - pct(C.R[by[i]].rec)) < 1e-9) j++;
+      let j = i; while (j < by.length && same(by[j], by[i])) j++;
       const g = by.slice(i, j); if (g.length === 1) out.push({ tid: g[0], why: '' }); else out.push(...order(g, C, crit)); i = j;
     }
     return out;
@@ -76,7 +79,7 @@
       const mine = teams.filter(t => (c.cid == null || C.cd[t.tid].cid === c.cid) && sum(C.R[t.tid].rec) > 0).map(t => t.tid), dv = {};
       mine.forEach(t => (dv[C.cd[t].did] = dv[C.cd[t].did] || []).push(t));
       const divisions = Object.keys(dv).map(d => ({ did: d === 'undefined' || d === 'null' ? null : +d, name: ((o.divs || []).find(x => String(x.did) === d) || {}).name || '', order: rank(dv[d], C, crit) }));
-      const winners = divisions.map(d => d.order[0]).filter(Boolean), wl = rank(winners.map(w => w.tid), C, crit), wset = new Set(winners.map(w => w.tid));
+      const winners = divisions.map(d => d.order[0]).filter(Boolean), wl = rank(winners.map(w => w.tid), C, crit), wset = new Set(winners.map(w => w.tid)); C.dw = wset;
       const wild = rank(mine.filter(t => !wset.has(t)), C, crit);
       const nPer = Math.max(1, Math.round((o.nPlayoff || 0) / confs.length)), byePer = Math.round((o.byes || 0) / confs.length);
       /* o.divFirst === false: the whole group is ranked by record and tiebreakers alone (this league: 14 teams from the whole league, 2 byes) */

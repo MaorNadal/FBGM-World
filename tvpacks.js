@@ -166,7 +166,7 @@
       if (!g) return { scenes: [ident('Game replay'), sc('none', 7000, '', '<div class="kick">Game replay</div><div class="mid">No game for ' + y + '</div>')], ticker: 'Game replay ·' };
       const H = g.teams[0], Aw = g.teams[1], qs = H.ptsQtrs && Aw.ptsQtrs ? [H.ptsQtrs, Aw.ptsQtrs] : null, B = await HubDB.box(g.gid), fp = B.map(b => ({ b, p: C.pts(b) })).filter(x => x.p > 0).sort((a, b) => b.p - a.p);
       const ge = C.EL && C.EL.games ? C.EL.games.find(x => x.gid === g.gid) : null, pH = ge ? ge.p : null, Wn = H.pts >= Aw.pts ? H : Aw, Ln = Wn === H ? Aw : H;
-      const ssl = (Array.isArray(g.scoringSummary) ? g.scoringSummary : []).map(x => typeof x === 'string' ? { t: x } : { t: x && (x.text || [x.time, x.type, x.description].filter(Boolean).join(' ')) || '', q: x && x.quarter }).filter(x => x.t);
+      const ssl = (Array.isArray(g.scoringSummary) ? g.scoringSummary : []).map(x => ({ t: scoreLine(x, i => C.ab((g.teams[i] || {}).tid)).replace(/^(Q\d|OT)( \d+:\d\d)? · /, ''), q: x && typeof x === 'object' ? x.quarter : null })).filter(x => x.t);
       const cum = qs ? qs[0].map((_, i) => [qs[0].slice(0, i + 1).reduce((a, b) => a + b, 0), qs[1].slice(0, i + 1).reduce((a, b) => a + b, 0)]) : [];
       const S = [ident('Game replay'), sc('title', 7500, 'Game replay', `<div class="kick">${y} season${g.playoffs ? ' · playoffs' : g.day != null ? ' · day ' + g.day : ''}</div><div class="big" style="font-size:7cqw">Game replay</div><div class="row" style="margin-top:1.4cqw">${C.LZ(Aw.tid, 110, y)}<span class="vsx">AT</span>${C.LZ(H.tid, 110, y)}</div>${pH != null ? `<div class="olab">Pre-game win chance · ${C.esc(C.ab(H.tid))} ${Math.round(pH * 100)}% · ${C.esc(C.ab(Aw.tid))} ${Math.round((1 - pH) * 100)}%</div>` : ''}`, [[C.H1, `Let's go back to ${C.nm(Aw.tid)} at ${C.nm(H.tid)}.`], [C.H2, pH != null ? `The model gave the home team ${Math.round(pH * 100)} percent.` : 'Here is how it unfolded.']], { confetti: 0 })];
       cum.forEach((c, i) => { const q = i < 4 ? 'Q' + (i + 1) : 'OT', plays = ssl.filter(x => x.q != null && +x.q === i + 1).slice(0, 5);
@@ -276,6 +276,15 @@
       return { scenes: S, ticker: 'FRONT-OFFICE CAROUSEL ' + y + ' · ' + (outC.length + outG.length) + ' OUT · ' + (inC.length + inG.length) + ' IN ·' };
     }
   };
-  const api = { init: c => { C = c; return api; }, modes, sbExtra, coachAt, ANS };
+  /* 1.64: one scoring-summary entry of the save ({type, clock (minutes), made, names[], yds, quarter, t = index of the team in game.teams}) as a sentence; strings pass through */
+  const scoreLine = (x, abOf) => {
+    if (typeof x === 'string') return x; if (!x || typeof x !== 'object') return '';
+    if (x.text) return x.text;
+    const q = x.quarter > 4 ? 'OT' : 'Q' + x.quarter, m = typeof x.clock === 'number' ? Math.floor(x.clock) + ':' + String(Math.round((x.clock % 1) * 60) % 60).padStart(2, '0') : '', who = (x.names || []).filter(Boolean), tm = abOf && x.t != null ? abOf(x.t) : '';
+    const ty = String(x.type || ''), yd = x.yds != null ? Math.abs(x.yds) + '-yard ' : '';
+    const what = /field/i.test(ty) ? (who[0] || 'Kicker') + (x.made === false ? ' missed a ' : ' kicked a ') + yd + 'field goal' : /extra/i.test(ty) ? (who[0] || 'Kicker') + (x.made === false ? ' missed the extra point' : ' made the extra point') : /two/i.test(ty) ? 'Two-point conversion' + (x.made === false ? ' failed' : ' good') + (who.length ? ' (' + who.join(' to ') + ')' : '') : /safety/i.test(ty) ? 'Safety' + (who[0] ? ' by ' + who[0] : '') : /touchdown|td/i.test(ty) ? (who[0] || 'Touchdown') + (who[1] ? ' ' + yd + 'score, pass from ' + who[1] : ' ' + yd + 'touchdown') : (who.join(', ') + ' ' + ty).trim();
+    return [q + (m ? ' ' + m : ''), tm, what].filter(Boolean).join(' · ');
+  };
+  const api = { scoreLine, init: c => { C = c; return api; }, modes, sbExtra, coachAt, ANS };
   if (typeof module !== 'undefined') module.exports = api; else root.TVPacks = api;
 })(typeof self !== 'undefined' ? self : this);
