@@ -3,7 +3,7 @@
 <div class="card"><div class="ctl"><div><label for="y">Season</label><select id="y"></select></div></div><p class="mu" style="margin-bottom:0">Each team's conference and division are those of the selected season. In this league there are two conferences with two divisions each, but the playoff field is picked from the whole league (see Playoff picture). The records below come from the games played.</p></div>
 <div class="cf" id="cf"></div>
 <div class="card sc"><h2>Division against division</h2><p class="mu" style="margin-top:0">Record of the row division against the column division (wins–losses–ties, row first). Green: winning record.</p><div id="mx"></div></div>
-<div class="card"><h2>Titles by conference, all seasons</h2><div id="tt"></div></div></main>
+<div class="card"><h2>Titles by conference, all seasons</h2><div id="tt"></div></div><div class="card sc"><h2>Titles by division, all seasons</h2><p class="mu" style="margin-top:0">Which division is the senior one: Super Bowl titles, finals reached and division championships of its teams, counted in the division each team belonged to in that season.</p><div id="td"></div></div></main>
 <script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="transform.js"></script><script src="metrics.js"></script><script src="rivals.js"></script><script src="divstats.js"></script><script src="tiebreak.js"></script><script src="honors.js"></script><script src="leaguedata.js"></script><script src="viz.js"></script>
 <script>(async()=>{const $=i=>document.getElementById(i),esc=Viz.esc,DS=FBGMDivStats,A=FBGMTransform.attr;const s=await HubDB.summary();
 if(!s){$('cf').innerHTML='<div class="card"><a class="btn" href="import.html">Import league file</a></div>';return}
@@ -23,5 +23,11 @@ try{const teams=(await LeagueData.teams()).sort((a,b)=>(a.region+a.name).localeC
  const names={};ys.forEach(y=>{(A(ga.confs,y)||[]).forEach(c=>names[c.cid]=names[c.cid]||c.name)});
  Viz.bars($('tt'),Object.keys(tt).map(c=>({id:+c,label:names[c]||('Conference '+c),value:tt[c]})),{top:6,fmt:v=>v+' titles'});
  $('tt').insertAdjacentHTML('beforeend','<p class="mu">Conference of the champion in its own season (team season records).</p>');
+ /* DV-1: titles by division, all seasons */
+ {const D={},dnm={},cnm={},divOf=(tid,y)=>{const z=((T[tid]||{}).seasons||[]).find(x=>x.season===y);return z&&z.did!=null?z.did:(T[tid]||{}).did},ent=k=>D[k]||(D[k]={k,sb:0,fin:0,dt:0,sbY:[]});
+  ys.forEach(y=>{(A(ga.divs,y)||[]).forEach(d=>{dnm[d.did]=d.name;cnm[d.did]=cnm[d.did]||((A(ga.confs,y)||[]).find(c=>c.cid===d.cid)||{}).name||''})});
+  for(const y of ys){const h=HH[y];if(!h)continue;if(h.champion){const a=divOf(h.champion.tid,y),b=divOf(h.champion.opp,y);if(a!=null){ent(a).sb++;ent(a).fin++;ent(a).sbY.push(y)}if(b!=null)ent(b).fin++}(h.division||[]).forEach(d=>{if(!(h.current&&!h.played)){const k=d.did!=null?d.did:divOf(d.tid,y);if(k!=null)ent(k).dt++}})}
+  const R=Object.values(D).sort((a,b)=>b.sb-a.sb||b.fin-a.fin||b.dt-a.dt);
+  $('td').innerHTML=R.length?'<table><tr><th>Division</th><th>Conference</th><th class="n">Super Bowl titles</th><th class="n">Finals</th><th class="n">Division titles</th><th>Title years</th></tr>'+R.map((r,i)=>`<tr><td>${i===0&&r.sb?'🏆 ':''}<b>${esc(dnm[r.k]||('Division '+r.k))}</b></td><td>${esc(cnm[r.k]||'')}</td><td class="n"><b>${r.sb}</b></td><td class="n">${r.fin}</td><td class="n">${r.dt}</td><td class="mu" style="white-space:normal">${r.sbY.sort((a,b)=>a-b).join(', ')}</td></tr>`).join('')+'</table>':'<p class="mu">No division results yet.</p>'}
  $('y').onchange=draw;draw()
 }catch(e){$('cf').innerHTML='<div class="card err"><b>Could not build the page.</b><p class="mu">'+Viz.esc(e.message)+'</p></div>';console.error(e)}})()</script></body></html>

@@ -41,3 +41,9 @@
 .aw-t{--k1:#0b6cff;--k2:#ffb81c;display:flex;align-items:center;gap:12px;min-width:0;padding:12px 14px;border-radius:16px;color:var(--tx);background:linear-gradient(120deg,color-mix(in srgb,var(--k1) 60%,#0b1020),#0a0e19 85%);border:1px solid color-mix(in srgb,var(--k2) 45%,transparent);transition:transform .15s}
 .aw-t:hover{transform:translateY(-3px);box-shadow:0 0 0 2px var(--k2)}.aw-t .aw-tn{flex:1;min-width:0}.aw-t small{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--k2);font-weight:800}.aw-t b{display:block;font-size:17px;line-height:1.15;overflow-wrap:anywhere}.aw-t em{font-style:normal;color:#cfd6e2;font-size:12px}.aw-t .aw-tr{flex:none}
 .aw-gold{color:#f4c542;font-weight:800}h3.aw-lab{margin-top:16px}
+
+/* win-number badge on every winner card (1.47) */
+.aw-m{position:relative}
+.aw-nb{position:absolute;right:8px;top:7px;z-index:3;background:linear-gradient(135deg,var(--k2),color-mix(in srgb,var(--k2) 50%,#fff));color:#111;font:800 10.5px/1 system-ui;letter-spacing:.03em;border-radius:99px;padding:3px 8px;box-shadow:0 2px 8px #000a,inset 0 0 0 1px #ffffff66;pointer-events:none}
+.aw-nb.big{right:16px;top:auto;bottom:14px;font-size:13px;padding:5px 12px}
+.aw-m .aw-nb{right:5px;top:5px;font-size:9.5px;padding:2px 6px}

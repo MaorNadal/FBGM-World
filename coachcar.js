@@ -43,8 +43,26 @@
       idle: c.idle != null ? c.idle : 0, retireAge: retireAgeOf(c), clash: clashOf(c), exp: (c.exp || 0) + (c.role === 'HC' ? 1 : 0) });
   }
   const wantsToStay = (c, successful) => c.age < retireAgeOf(c) + (successful ? 3 : 0);
+  /* ---- the negotiation (1.47): a coach may refuse a seat or a team. t needs { tid, pct, po }. Returns { ok, why, alt } where alt is the role he would take instead. ---- */
+  function negotiate(t, c, role) {
+    const rep = repOf(c), tr = teamTrait(t.tid), ap = appealOf(t), amb = hash('amb' + c.name), unproven = (c.exp || 0) === 0 && c.role === 'HC', natural = OFF.includes(c.style) ? 'OC' : DEF.includes(c.style) ? 'DC' : 'OC';
+    if (role === 'HC') {
+      if (unproven && amb < 0.65 && rep < 55) return { ok: false, why: 'He has never coached at this level and wants a coordinator job first.', alt: natural };
+      if (c.role !== 'HC' && !(c.unit != null && c.unit >= 0.4) && rating(c) < 58) return { ok: false, why: 'He does not feel ready for a head-coach job yet.', alt: c.role };
+    } else {
+      if (c.role !== 'HC' && c.role !== role) return { ok: false, why: 'He is ' + (c.role === 'OC' ? 'an offensive' : 'a defensive') + ' specialist.', alt: c.role };
+      if (c.role === 'HC' && !unproven && rep >= 70 && !(c.idle >= 2)) return { ok: false, why: 'A head coach of his reputation does not take a coordinator job yet.', alt: 'HC' };
+    }
+    if (rep >= 75 && ap < 0.35) return { ok: false, why: 'He wants a team that can win now.' };
+    if (rep >= 60 && tr.patience < 0.3 && amb < 0.5) return { ok: false, why: 'He does not trust an owner who fires coaches quickly.' };
+    if (rating(c) >= 70 && ap < 0.15) return { ok: false, why: 'The team is too weak for him.' };
+    return { ok: true, why: 'He accepts.' };
+  }
   /* ---- how much a team wants a candidate for a seat ---- */
+  /* 1.55: the general manager's philosophy leans the hiring: the coach styles that go with each GM style (a bonus in fit, never a veto) */
+  const GMPREF = { 'Draft-and-develop': ['Developer of talent'], 'Win-now veteran buyer': ['Old school', 'Disciplinarian'], 'Cap wizard': ['Analytics-minded'], 'Trade-happy dealer': ['Innovator', 'Offensive guru'], 'Analytics-driven': ['Analytics-minded', 'Innovator'], 'Old-school scout': ['Old school', 'Players’ coach'] };
   function fit(t, c, role) {
+    if (!negotiate(t, c, role).ok) return -Infinity;
     const tr = teamTrait(t.tid); let v = rating(c) + 0.25 * repOf(c);
     if (role === 'HC') {
       if (c.role !== 'HC') v += 40 * ((c.unit != null ? c.unit : 0.5) - 0.45) - 2; else v += 3;
@@ -52,11 +70,11 @@
       if (c.age >= 64) v -= 3;
     } else {
       if (c.role === role) v += 6;
-      else if (c.role === 'HC') { if (repOf(c) >= 70 && !(c.idle >= 2)) return -Infinity; v -= 6; const natural = role === 'OC' ? OFF : DEF; if (!natural.includes(c.style)) v -= 4; }
+      else if (c.role === 'HC') { const nat = role === 'OC' ? OFF : DEF; if ((c.exp || 0) === 0) v += nat.includes(c.style) ? 1 : -3; else { v -= 6; if (!nat.includes(c.style)) v -= 4; } }
       else return -Infinity;
       if (c.clash) v -= 3;
     }
-    if (c.style === tr.prefStyle) v += 5; if (repOf(c) >= 75 && appealOf(t) < 0.35) return -Infinity;
+    if (c.style === tr.prefStyle) v += 5; if (t.gmStyle && (GMPREF[t.gmStyle] || []).includes(c.style)) v += 4; if (repOf(c) >= 75 && appealOf(t) < 0.35) return -Infinity;
     return v + (hash(c.name + '|' + t.tid) - 0.5) * 1.5;
   }
   const ROLES = ['HC', 'OC', 'DC'], KEY = { HC: 'coach', OC: 'oc', DC: 'dc' }, SEC = { HC: 'security', OC: 'secOC', DC: 'secDC' };
@@ -76,7 +94,8 @@
         const successful = k === 'HC' ? (t.pct || 0) >= 0.6 : sec >= 65;
         if (!wantsToStay(c, successful)) { staff[t.tid + k] = null; open.push({ tid: t.tid, role: k, was: c, retired: true }); note(t.tid, k, 'retired', c, 'age ' + c.age); continue; }
         if (k === 'HC' && c.interim) { if ((t.pct || 0) >= 0.5) { staff[t.tid + k] = Object.assign({}, c, { interim: false }); out.updates.find(u => u.tid === t.tid && u.role === 'HC').coach = staff[t.tid + k]; note(t.tid, k, 'retained', c, 'the interim coach earned the job'); continue; } staff[t.tid + k] = null; open.push({ tid: t.tid, role: k, was: c }); note(t.tid, k, 'fired', c, 'the interim coach is not kept'); continue; }
-        const p = pressure(sec, tr.patience, { clash: clashOf(c) && k === 'HC', firstYear: (c.exp || 0) <= 1 && k === 'HC', circ: hash('c' + c.name + season) });
+        const ct = contractOf(c, season), cf = ct && ct.left != null ? (ct.left > 0 ? 1 - 0.07 * Math.min(ct.left, 3) : 1.04) : 1; /* years left on the contract make an owner slower to pay him off; an expired one makes it easier */
+        const p = cf * pressure(sec, tr.patience, { clash: clashOf(c) && k === 'HC', firstYear: (c.exp || 0) <= 1 && k === 'HC', circ: hash('c' + c.name + season) });
         if (p >= (k === 'HC' ? FIRE_AT : FIRE_AT + 0.05)) { staff[t.tid + k] = null; open.push({ tid: t.tid, role: k, was: c }); note(t.tid, k, 'fired', c, sec < 35 ? 'results far below the expectation' : sec < 55 ? 'the owner ran out of patience' : 'a clash with the owner'); }
       }
     }
@@ -135,6 +154,13 @@
     c.rep = clamp(Math.round(rating(c) * 0.75 + (h('r') - 0.5) * 12), 0, 100); return c;
   }
   const clashOfExport = clashOf;
-  const api = { clashOf: clashOfExport, rating, repOf, retireAgeOf, teamTrait, appealOf, pressure, inSeasonPressure, FIRE_AT, FIRE_IN, evolve, fit, carousel, inSeason, fromPlayer, playerPool, newCoach };
+  /* 1.57: a contract, from the coach and the year he took the seat (used by the carousel: years left lower the pressure to dismiss): a head coach 3 to 6 years (longer for a famous one), a coordinator 2 to 4;
+     { years, from, ends, left (years left after the given season), owed (what a dismissal now would leave unpaid, in years) } */
+  function contractOf(c, season) {
+    if (!c || c.vacant) return null; const since = typeof c.since === 'number' ? c.since : null, r = c.role || 'HC', base = r === 'HC' ? 3 : 2, span = r === 'HC' ? 3 : 2;
+    const years = base + Math.floor(hash('ct' + c.name) * span) + (repOf(c) >= 75 ? 1 : 0), from = since != null ? since : null, ends = from != null ? from + years - 1 : null;
+    const left = ends != null && season != null ? Math.max(0, ends - season) : null; return { years, from, ends, left, owed: left };
+  }
+  const api = { contractOf, negotiate, clashOf: clashOfExport, rating, repOf, retireAgeOf, teamTrait, appealOf, pressure, inSeasonPressure, FIRE_AT, FIRE_IN, evolve, fit, carousel, inSeason, fromPlayer, playerPool, newCoach };
   if (typeof module !== 'undefined') module.exports = api; else root.FBGMCarousel = api;
 })(typeof self !== 'undefined' ? self : this);

@@ -18,6 +18,6 @@ $('go').onclick=()=>{$('go').disabled=true;$('cx').disabled=false;$('res').hidde
 $('cx').onclick=()=>w&&w.postMessage({type:'cancel'});
 $('u').value=Cloud.url();const cst=()=>{const s=Cloud.status||{};$('cs').textContent=Cloud.url()?(s.msg||'…'):'Sync is off.';$('cs').className=s.s==='err'?'bad':'mu'};
 $('u').onchange=()=>{Cloud.setUrl($('u').value);$('cs').textContent='Connecting…';Cloud.sync().then(n=>{cst();if(n)location.reload()}).catch(cst)};setInterval(cst,1000);cst();
-$('wx').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([World.exportAll()],{type:'application/json'}));a.download='fbgm-hub-world.json';a.click();$('wm').textContent='Exported.'};
+$('wx').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([World.exportAll()],{type:'application/json'}));a.download='fbgm-hub-world-'+new Date().toISOString().slice(0,10)+'.json';try{localStorage.setItem('fbgmhub_lastbackup',String(Date.now()))}catch(e){};a.click();$('wm').textContent='Exported.'};
 $('wi').onchange=async e=>{try{$('wm').textContent='Imported '+World.importAll(await e.target.files[0].text())+' items.'}catch(x){$('wm').textContent='Failed: '+x.message}};
 </script></body></html>

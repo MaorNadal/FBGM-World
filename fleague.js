@@ -82,6 +82,19 @@
   function rosters(L) { const order = snake(L.n, L.rounds), R = Array.from({ length: L.n }, () => []); L.picks.forEach((id, i) => R[order[i]].push(id)); return R; }
   /* playoffs: the top `k` of the standings, two rounds (semi-finals, final). Returns the seeds; the weekly points decide through play(). */
   function bracket(st, k) { return st.slice(0, k || 4).map(x => x.m); }
-  const api = { SLOTS, BENCH, ROUNDS, SCORING, STRAT, points, dst, lineup, snake, schedule, standings, aiPick, advance, rosters, bracket, rng };
+  /* 1.60: the draft room chat (templates, no AI). recent: [{ p: {id,name,pos}, m: manager index who picked, n: pick number }], pool: players best first, mgrs: [{name, you}].
+     Another manager reacts: a steal (the player ranks far above the slot), a reach (far below), else a remark by position; deterministic. Returns [{ n, by, text }] (plain text). */
+  const chash = t => { let h = 2166136261; for (const c of String(t)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+  function chat(recent, pool, mgrs, id) {
+    const rk = new Map(pool.map((p, i) => [p.id, i + 1])), out = [];
+    for (const r of recent) {
+      if (!r.p || mgrs.length < 2) continue; const others = mgrs.map((m, i) => i).filter(i => i !== r.m), who = mgrs[others[Math.floor(chash('chat' + id + r.n) * others.length)]], rank = rk.get(r.p.id) || r.n, gap = r.n - rank, nm = r.p.name, pos = r.p.pos;
+      const T = gap >= 12 ? ['That is a steal: ' + nm + ' is going ' + gap + ' spots later than I had him.', 'I cannot believe ' + nm + ' fell to #' + r.n + '.', 'Somebody got a bargain.'] : gap <= -12 ? ['A reach on ' + nm + '? He was nowhere near the top of my board.', 'Bold. ' + nm + ' at #' + r.n + '.', 'I would have waited a round on ' + nm + '.'] :
+        pos === 'QB' ? ['A quarterback already. Fine, ' + nm + ' is a safe floor.', 'Everyone wants a QB, ' + nm + ' goes.'] : pos === 'RB' ? ['Running backs go fast. ' + nm + ' is gone.', 'Good, ' + nm + ' is a workhorse.'] : pos === 'WR' ? ['A receiver run is starting.', 'Nice target for the passing game: ' + nm + '.'] : pos === 'TE' ? ['A tight end this early? Interesting.', 'Scarce position, ' + nm + ' makes sense.'] : ['Fine pick.', 'Waiting on that one was a risk.'];
+      out.push({ n: r.n, by: who.name + (who.you ? ' (you)' : ''), text: T[Math.floor(chash('t' + r.n + id) * T.length)] });
+    }
+    return out;
+  }
+  const api = { chat, SLOTS, BENCH, ROUNDS, SCORING, STRAT, points, dst, lineup, snake, schedule, standings, aiPick, advance, rosters, bracket, rng };
   if (typeof module !== 'undefined') module.exports = api; else root.FBGMFantasyLeague = api;
 })(typeof self !== 'undefined' ? self : this);

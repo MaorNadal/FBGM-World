@@ -21,7 +21,7 @@ window.Faces = (function () {
   }
   async function draw(el, face, team) {
     el.innerHTML = sil; const d = await load();
-    if (d && face) { try { const x = dressed(face, team); d(el, x.f, x.ov); const s = el.querySelector('svg'); if (s) { s.removeAttribute('width'); s.removeAttribute('height'); s.style.cssText = 'width:100%;height:100%'; return true; } } catch (e) {} }
+    if (d && face) { try { const x = dressed(face, team); d(el, x.f, x.ov); const s = el.querySelector('svg'); if (s) { s.removeAttribute('width'); s.removeAttribute('height'); s.style.cssText = 'width:100%;height:100%'; /* TV and cards: fill the frame, head at the top (the picture is cropped, not letterboxed) */ if (el.closest && el.closest('.fbig,.fcx,.faces,.aw-f,.aw-bf')) s.setAttribute('preserveAspectRatio', 'xMidYMin slice'); return true; } } catch (e) {} }
     el.innerHTML = sil; return false;
   }
   async function svgString(face, x, y, w, h, team) {

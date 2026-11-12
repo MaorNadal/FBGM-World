@@ -5,6 +5,7 @@
   /* group: major | allleague | allstar | leader | champ | other ; tier: gold | silver | bronze | blue | plain ; rank: 1 first team, 2 second ... */
   function classify(type) {
     const t = String(type || '');
+    if (/all-?rookie|rookie team/i.test(t)) { const r = /second/i.test(t) ? 2 : 1; return { group: 'allleague', tier: r === 1 ? 'gold' : 'silver', rank: r, rookie: true }; }
     if (/all-?star/i.test(t)) return { group: 'allstar', tier: /mvp/i.test(t) ? 'gold' : 'blue', rank: 0 };
     if (/team all-?league|all-?league/i.test(t)) { const r = /first/i.test(t) ? 1 : /second/i.test(t) ? 2 : /third/i.test(t) ? 3 : 1; return { group: 'allleague', tier: r === 1 ? 'gold' : r === 2 ? 'silver' : 'bronze', rank: r }; }
     if (/won championship|champion/i.test(t) && !/mvp/i.test(t)) return { group: 'champ', tier: 'gold', rank: 0 };

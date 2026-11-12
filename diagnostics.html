@@ -10,7 +10,7 @@ if(!s){o.innerHTML='<div class="card"><p>No league imported on this device yet, 
 const stores=await step('stores',()=>HubDB.stores())||[],counts={};for(const k of stores)counts[k]=await step('count '+k,()=>HubDB.count(k));
 const teams=await step('teams',()=>HubDB.all('teams'))||[],ga=await step('settings',async()=>((await HubDB.get('meta','gameAttributes'))||{}).v)||{};
 const pl=await step('players of your team',()=>HubDB.idx('players','tid',s.userTid))||[],player=pl.find(p=>(p.stats||[]).length>1&&(p.awards||[]).length)||pl.find(p=>(p.stats||[]).length)||pl[0],team=teams.find(t=>t.tid===s.userTid)||teams[0];
-const box=await step('box row',async()=>(await HubDB.idx('box','season',s.season-1))[0]||(await HubDB.idx('box','season',s.season))[0]);
+const box=await step('box row',async()=>{const R=(await HubDB.idx('box','season',s.season-1)).slice(0,3000).concat((await HubDB.idx('box','season',s.season)).slice(0,3000));/* a defender's row has no yards stat; sample a row that has one, so the Leaders check is not a false alarm */return R.find(r=>r.pssYds!=null||r.rusYds!=null||r.recYds!=null)||R[0]});
 const games=await step('games',()=>HubDB.all('games'))||[],game=games.find(g=>g.season===s.season-1&&!g.allStar)||games[0];
 const mi=await step('misc',()=>HubDB.all('misc'))||[],sched=(mi.find(r=>r.src==='schedule')||{}).v,pick=(mi.find(r=>r.src==='draftPicks')||{}).v;
 const event=await step('event',async()=>(await HubDB.idx('events','season',s.season-1))[0]);
