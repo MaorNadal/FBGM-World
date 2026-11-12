@@ -258,6 +258,24 @@
       return { scenes: S, ticker: 'FANTASY CHAMPIONSHIP ' + y + ' · CHAMPION: ' + R.champion.toUpperCase() + ' ·' };
     }
   };
+  /* ---- front-office night (1.57): the coaching and general-manager carousel of a season, from the logs the Coaches and General managers pages keep ---- */
+  modes.fo = {
+    label: 'Front-office carousel',
+    years: () => { const y = [...new Set(C.World.get('coachlog', []).filter(l => l.type !== 'carousel').concat(C.World.get('gmlog', [])).map(l => l.season))].sort((a, b) => b - a); return y.length ? y : C.allSeasons; },
+    build: async y => {
+      const CL = C.World.get('coachlog', []).filter(l => l.season === y && l.tid >= 0), GL = C.World.get('gmlog', []).filter(l => l.season === y);
+      const seat = r => r === 'AGM' ? 'assistant GM' : r === 'GM' ? 'general manager' : r === 'HC' ? 'head coach' : r === 'OC' ? 'offensive coordinator' : r === 'DC' ? 'defensive coordinator' : r;
+      const row = (t, what, who, role) => `<div style="display:flex;gap:1.4cqw;align-items:center;margin:.5cqw 0"><span style="width:6cqw;color:var(--g1)">${C.esc(tab(t))}</span><span style="flex:1">${C.esc(who || '—')}</span><small>${C.esc(what)}${role ? ' · ' + C.esc(seat(role)) : ''}</small></div>`;
+      const outC = CL.filter(l => l.type === 'fired' || l.type === 'retired').sort((a, b) => (a.role === 'HC' ? 0 : 1) - (b.role === 'HC' ? 0 : 1)).slice(0, 9), inC = CL.filter(l => l.type === 'hired' || l.type === 'promoted').sort((a, b) => (a.role === 'HC' ? 0 : 1) - (b.role === 'HC' ? 0 : 1)).slice(0, 9);
+      const outG = GL.filter(l => l.type === 'fired' || l.type === 'retired'), inG = GL.filter(l => l.type === 'hired' || l.type === 'promoted' || l.type === 'demoted');
+      if (!CL.length && !GL.length) return { scenes: [sc('none', 9000, '', '<div class="kick">Front-office carousel</div><div class="mid">No changes stored for ' + y + '</div><div class="sm">Run the end-of-season carousel on the Coaches page and the review on the General managers page, then come back.</div>')], ticker: 'Front-office carousel ·' };
+      const S = [ident('The carousel'), sc('title', 7000, 'Front-office carousel · ' + y, `<div class="kick">After the ${y} season</div><div class="big">The carousel</div><div class="sm">${outC.length + outG.length} out · ${inC.length + inG.length} in</div>`, [[C.H1, `The ${y} season is over, and the front offices are already moving.`], [C.H2, `Coaches, coordinators and general managers: who is out, and who is in.`]], { confetti: 0 })];
+      if (outC.length) S.push(sc('co', 10000, 'Coaches out', `<div class="kick">Coaching changes: out</div><div class="lst" style="width:66cqw;font-size:1.8cqw">${outC.map(l => row(l.tid, l.type === 'retired' ? 'retires' : 'dismissed', l.name, l.role)).join('')}</div>`, [[C.H1, `${outC.length} coaching exits. ${outC.filter(l => l.role === 'HC').length} of them head coaches.`]]));
+      if (inC.length) S.push(sc('ci', 10000, 'Coaches in', `<div class="kick">Coaching changes: in</div><div class="lst" style="width:66cqw;font-size:1.8cqw">${inC.map(l => row(l.tid, l.type === 'promoted' ? 'promoted' : 'hired', l.name, l.role)).join('')}</div>`, [[C.H2, `And the new faces: ${inC.length} hires.`]]));
+      if (outG.length || inG.length) S.push(sc('go', 11000, 'General managers', `<div class="kick">The executive suite</div><div class="lst" style="width:70cqw;font-size:1.8cqw">${outG.map(l => row(l.tid, l.type === 'retired' ? 'retires' : 'dismissed', l.out, l.role)).join('')}${inG.map(l => row(l.tid, l.type === 'promoted' ? 'promoted from assistant' : l.type === 'demoted' ? 'back as assistant' : 'hired' + (l.from && String(l.from).startsWith('poached') ? ' (poached)' : ''), l.in, l.role)).join('')}</div>`, [[C.H1, `In the front offices, ${outG.length} executives leave and ${inG.length} arrive.`], [C.H2, `Assistants step up, and some teams raid the others.`]]));
+      return { scenes: S, ticker: 'FRONT-OFFICE CAROUSEL ' + y + ' · ' + (outC.length + outG.length) + ' OUT · ' + (inC.length + inG.length) + ' IN ·' };
+    }
+  };
   const api = { init: c => { C = c; return api; }, modes, sbExtra, coachAt, ANS };
   if (typeof module !== 'undefined') module.exports = api; else root.TVPacks = api;
 })(typeof self !== 'undefined' ? self : this);

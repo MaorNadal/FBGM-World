@@ -112,3 +112,51 @@ Coaches: no random draws. Every coach has ratings that change with the years, a 
 
 ## Version 1.46
 A face beside every player name in every table (automatic, on every page). Fantasy league: waivers with a rolling priority, the AI managers use the wire, coach legends as managers. Import again is NOT required.
+
+## Version 1.47
+Super Bowl trophy case fixed on phones; titles by division; All-Rookie teams like the All-League teams and a win-number badge on every winner card; coaches can refuse a seat or a team and the coaches follow the save (catch-up button); full-figure Ace cards in the Album (`pose.js`). Tests: `node FBGM-hub-tests/round43.test.js`. Import again is NOT required.
+
+## Version 1.48
+Ace cards with the player's own face on the figure, three designs (Ace, Elite, Award winner) and a pose that changes on hover; the legend under the player's stat tables no longer overlaps.
+
+## Version 1.49
+Cards: a basic card for everyone plus Ace or Elite and Award winner cards. World file backups are dated and a reminder asks for a backup.
+
+## Version 1.50
+TV: full-body figures of the Super Bowl MVP and the award winners.
+
+## Version 1.51
+General managers page (`gms.html`, `gm.js`). Planned: Panini-style album with a page per team. Tests: `node FBGM-hub-tests/round44.test.js`.
+
+## Version 1.52
+Sticker album (`stickers.html`): a page per team with the crest watermark, stick the players of every team.
+
+## Version 1.53
+Sticker album: gold (75+) and holographic (84+) stickers, silhouette fallback.
+
+## Version 1.54
+General managers like the coaches (assistant GM, negotiation, carousel, market). Sticker album with basic and special sections per team. Tests: `node FBGM-hub-tests/round44.test.js`.
+
+## Version 1.55
+The GM's style leans coach hiring; sticker pages show GM and head coach and can be printed.
+
+## Version 1.56
+Playoff picture check separates tiebreak errors from rule errors; Diagnostics samples a box row with a yards stat.
+
+## Version 1.57
+Front office on the team page, TV package Front-office carousel, coach contracts (display).
+
+## Version 1.58
+Backup reminder moved to the bottom of every page; coach contracts lower the dismissal pressure.
+
+## Version 1.59
+Morning show front-office segment; contracts on the Coaches page.
+
+## Version 1.60
+GM stance on the Trade page, picking GM on the Draft page, draft room chat in the fantasy league.
+
+## Version 1.61
+Team map: a team named after its state is placed in the state.
+
+## Version 1.62
+Teams named after a state sit in its largest city; the state of a US-born player: a list of about 1,270 cities plus a chooser for the rest (Maps page).

@@ -31,6 +31,14 @@
     const verdict = !tot ? 'nothing on the table' : Math.abs(share - 0.5) < 0.08 ? 'about even' : share > 0.5 ? (share > 0.7 ? 'side A wins clearly' : 'side A comes out ahead') : (share < 0.3 ? 'side B wins clearly' : 'side B comes out ahead');
     return { gotA, gotB, diff, share, verdict, salaryA: salary(B) - salary(A), salaryB: salary(A) - salary(B) };
   }
-  const api = { playerValue, score, pickValue, pickPlace, pickScore, evaluate };
+  /* 1.60: how the general manager of a team reads a deal (narrative; our own model, not the game's trade AI). share = the share of the total value that his team receives (0 to 1).
+     gm: { trade (35-99), style }. He wants more than half when he is a hard bargainer and accepts a little less when he likes to deal. */
+  function gmStance(gm, share) {
+    const sk = gm && gm.trade != null ? gm.trade : 60, st = gm && gm.style || '';
+    let need = 0.5 + 0.004 * (sk - 60); if (st === 'Trade-happy dealer') need -= 0.03; if (st === 'Win-now veteran buyer') need -= 0.01; if (st === 'Draft-and-develop') need += 0.01; need = Math.max(0.44, Math.min(0.58, need));
+    const ok = share >= need, tone = sk >= 75 ? 'a hard bargainer' : sk >= 55 ? 'a fair dealer' : 'an easy touch';
+    return { need, ok, tone, text: ok ? 'would take the deal' : share >= need - 0.05 ? 'is close and would ask for a little more' : 'would turn it down' };
+  }
+  const api = { gmStance, playerValue, score, pickValue, pickPlace, pickScore, evaluate };
   if (typeof module !== 'undefined') module.exports = api; else root.FBGMTradeCalc = api;
 })(typeof self !== 'undefined' ? self : this);

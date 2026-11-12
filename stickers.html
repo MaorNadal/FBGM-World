@@ -1,0 +1,60 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Sticker album · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>
+.stk-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}.stk-tabs button{flex:0 0 auto;display:flex;align-items:center;gap:5px;font-size:12px;padding:4px 8px}.stk-tabs button.on{outline:2px solid var(--c2)}.stk-tabs button.full{background:color-mix(in srgb,var(--ok) 30%,transparent)}
+.stk-page{--k1:#0b6cff;--k2:#f4c542;position:relative;overflow:hidden;border-radius:16px;padding:16px;background:linear-gradient(160deg,color-mix(in srgb,var(--k1) 22%,var(--card,#10151f)),var(--card,#10151f));border:2px solid var(--k2)}
+.stk-wm{position:absolute;left:50%;top:50%;width:70%;max-width:520px;transform:translate(-50%,-50%);opacity:.12;pointer-events:none}.stk-wm *{max-width:100%}.stk-wm svg,.stk-wm img{width:100%!important;height:auto!important}
+.stk-h{position:relative;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}.stk-h h2{margin:0}.stk-h .bar{flex:1;min-width:120px}
+.stk-sec{position:relative;margin:14px 0 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:800;letter-spacing:.04em}.stk-sec small{font-weight:500;opacity:.8;letter-spacing:0}.stk-sec .bar{flex:1;min-width:90px}
+.stk-g{position:relative;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}.stk-g.sp{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.stk-s{position:relative;aspect-ratio:3/4;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;padding:4px;font-size:11px;cursor:pointer;border:2px dashed #8a93a5;background:#ffffff10;color:var(--tx);overflow:hidden}
+.stk-s.on{border:2px solid var(--k2);background:linear-gradient(#ffffff22,#0006);box-shadow:0 3px 8px #0008;transform:rotate(var(--r,0deg))}
+.stk-s .fc{position:absolute;inset:0 0 38px 0}.stk-s .fc svg{width:100%;height:100%}
+.stk-s .no{position:absolute;left:6px;top:4px;font:900 11px system-ui;opacity:.8;z-index:2}.stk-s .ov{position:absolute;right:6px;top:4px;font:900 14px system-ui;color:var(--k2);z-index:2}
+.stk-s b{position:relative;z-index:2;font-size:11px;line-height:1.15;background:#000a;padding:1px 4px;border-radius:4px}.stk-s small{position:relative;z-index:2;opacity:.9}
+.stk-s.gold{border-color:#ffd35a;box-shadow:0 3px 10px #0008,0 0 0 1px #ffd35a88}
+.stk-s.holo{border:3px solid transparent;border-image:linear-gradient(135deg,#fff7c2,#f4c542,#c47cff,#5ad1ff,#fff7c2) 1}
+.stk-s.holo:after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,#ffffff55 48%,#ffd5ff66 52%,transparent 70%);background-size:300% 100%;animation:stkh 3.4s linear infinite;mix-blend-mode:screen;pointer-events:none;z-index:3}
+.stk-s.sp{aspect-ratio:3/4.4}.stk-s.sp .fg{position:absolute;inset:14px 4px 40px 4px;display:flex;justify-content:center}.stk-s.sp .fg svg{height:100%;width:auto;filter:drop-shadow(0 4px 4px #000b)}
+.stk-s.ace.on{background:linear-gradient(165deg,color-mix(in srgb,var(--k1) 70%,#0b1020),#0a0e19)}.stk-s.elite.on{background:linear-gradient(165deg,#1a1230,#0a0e19 70%)}.stk-s.award.on{background:radial-gradient(120px 110px at 50% 30%,#3a2a08,#120d02 80%);border-color:#f4c542}
+.stk-s .rb{position:absolute;left:-26px;top:10px;transform:rotate(-45deg);font:900 8px system-ui;letter-spacing:.18em;padding:1px 28px;background:var(--k2);color:#111;z-index:4}.stk-s.elite .rb{background:linear-gradient(90deg,#c47cff,#5ad1ff)}.stk-s.award .rb{background:linear-gradient(90deg,#ffe9a3,#f4c542,#a8761a)}
+@media print{body{background:#fff!important}.nav,nav,header,footer,.hero,.card,#tabs,.bk{display:none!important}.stk-page{break-inside:auto;border-color:#000}.stk-s{break-inside:avoid;box-shadow:none!important}.stk-s.holo:after{display:none}}@keyframes stkh{0%{background-position:200% 0}100%{background-position:-100% 0}}@media(prefers-reduced-motion:reduce){.stk-s.holo:after{animation:none}}.stk-s:not(.on) b{background:none;opacity:.7}
+</style></head><body>
+<main class="wrap"><div class="hero"><small>Players</small><h1>Sticker album</h1><p id="sub">Loading…</p></div>
+<div class="card f"><button class="btn" id="all">Stick the basics of this page</button><button class="btn" id="sp">Stick the specials of this page</button><button class="btn" id="own">Stick my card-album players</button><button class="btn" id="clr">Peel this page</button><button class="btn" id="prt">Print this page</button><span class="mu" id="tot"></span></div>
+<div class="card"><div class="stk-tabs" id="tabs"></div></div><div id="pg"></div></main>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="world.js"></script><script src="faces.js"></script><script src="pose.js"></script><script src="awardui.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i);const s=await HubDB.summary();if(!s){$('pg').innerHTML='<a class="btn" href="import.html">Import league file</a>';return}
+const teams=(await HubDB.all('teams')).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name)),pl=await HubDB.all('players'),ok=c=>/^#[0-9a-f]{6}$/i.test(c||''),AUI=window.FBGMAwardUI;
+const ORD=['QB','RB','WR','TE','OL','DL','LB','CB','S','K','P'],rk=ps=>{const i=ORD.indexOf(ps);return i<0?99:i};
+const last=p=>(p.ratings||[]).slice(-1)[0]||{},pos=p=>last(p).pos||p.pos||'',ovr=p=>last(p).ovr||0,nm=p=>((p.firstName||'')+' '+(p.lastName||'')).trim();
+const major=p=>AUI?(p.awards||[]).filter(a=>AUI.classify(a.type).group==='major'):[];
+/* basic section: the whole roster by position; special section: an Ace (75+) or Elite (84+) card and an Award-winner card for each player who earned them */
+const basics=t=>pl.filter(p=>p.tid===t.tid).sort((a,b)=>rk(pos(a))-rk(pos(b))||ovr(b)-ovr(a));
+const specials=t=>{const out=[];for(const p of basics(t).sort((a,b)=>ovr(b)-ovr(a))){const o=ovr(p);if(o>=84)out.push({p,kind:'elite',key:p.pid+':elite'});else if(o>=75)out.push({p,kind:'ace',key:p.pid+':ace'});if(major(p).length)out.push({p,kind:'award',key:p.pid+':award'})}return out};
+const PAGES=teams.map(t=>({t,B:basics(t),S:specials(t)}));
+let cur=World.get('stk_page',0);if(cur>=PAGES.length)cur=0;
+const book=()=>World.get('stickbook',{}),save=b=>World.set('stickbook',b);
+const dB=P=>P.B.filter(p=>book()[p.pid]).length,dS=P=>P.S.filter(x=>book()[x.key]).length,full=P=>dB(P)+dS(P)===P.B.length+P.S.length&&P.B.length+P.S.length>0;
+function tabs(){$('tabs').innerHTML=PAGES.map((P,i)=>'<button class="btn'+(i===cur?' on':'')+(full(P)?' full':'')+'" data-i="'+i+'">'+Logo.html(P.t,18)+(P.t.abbrev||P.t.name)+' '+(dB(P)+dS(P))+'/'+(P.B.length+P.S.length)+'</button>').join('');
+ $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{cur=+b.dataset.i;World.set('stk_page',cur);draw()});
+ const TB=PAGES.reduce((a,P)=>a+P.B.length,0),DB=PAGES.reduce((a,P)=>a+dB(P),0),TS=PAGES.reduce((a,P)=>a+P.S.length,0),DS=PAGES.reduce((a,P)=>a+dS(P),0);
+ $('tot').textContent='Album: basics '+DB+'/'+TB+' · specials '+DS+'/'+TS;$('sub').textContent=s.season+' · '+PAGES.length+' pages · click a slot to stick or peel · basics for everyone, specials for 75+ (Ace), 84+ (Elite, holographic) and major-award winners'}
+const front=t=>{const g=World.get('gms',{})[t.tid]||{},G0=g.GM||(g.role?g:null),C0=(World.get('coaches',{})[t.tid]||{}).HC,f=(l,x)=>x&&!x.vacant&&x.name?'<span class="mu">'+l+': '+x.name.replace(/</g,'&lt;')+'</span>':'';return '<span style="display:flex;gap:12px;flex-wrap:wrap">'+f('GM',G0)+f('Head coach',C0)+'</span>'};
+const bar=(d,n)=>'<div class="bar"><i style="width:'+(n?100*d/n:0)+'%"></i></div><b>'+d+'/'+n+'</b>';
+async function draw(){tabs();const P=PAGES[cur],t=P.t,cs=t.colors||[],k2=ok(cs[1])&&cs[1]!=='#000000'?cs[1]:ok(cs[2])?cs[2]:'#f4c542',B=book();
+ let h='<div class="stk-page" style="--k1:'+(ok(cs[0])?cs[0]:'#0b6cff')+';--k2:'+k2+'"><div class="stk-wm">'+Logo.html(t,600)+'</div><div class="stk-h">'+Logo.html(t,44)+'<h2>'+(t.region+' '+t.name).replace(/</g,'&lt;')+'</h2>'+front(t)+'</div>';
+ h+='<div class="stk-sec">Basic stickers <small>the whole roster</small>'+bar(dB(P),P.B.length)+'</div><div class="stk-g">';
+ P.B.forEach((p,i)=>{const on=!!B[p.pid],r=((p.pid*37)%7-3)*0.7;h+='<div class="stk-s'+(on?' on':'')+'" data-k="'+p.pid+'" style="--r:'+r+'deg"><span class="no">'+(i+1)+'</span>'+(on?'<span class="ov">'+ovr(p)+'</span><div class="fc" data-face="'+p.pid+'"></div><b>'+nm(p).replace(/</g,'&lt;')+'</b><small>'+pos(p)+(p.jerseyNumber!=null?' · #'+p.jerseyNumber:'')+'</small>':'<small>'+pos(p)+'</small><b>'+nm(p).replace(/</g,'&lt;')+'</b>')+'</div>'});
+ h+='</div><div class="stk-sec">Special stickers <small>Ace 75+ · Elite 84+ · Award winner</small>'+bar(dS(P),P.S.length)+'</div>'+(P.S.length?'<div class="stk-g sp">':'<span class="mu">No player of this team qualifies yet.</span>');
+ P.S.forEach((x,i)=>{const p=x.p,on=!!B[x.key],r=((p.pid*29)%7-3)*0.6,lab=x.kind==='award'?'AWARD WINNER':x.kind==='elite'?'ELITE':'ACE',aw=x.kind==='award'?major(p).slice(0,2).map(a=>(a.type||'').replace(/Most Valuable Player/,'MVP').replace(/Offensive Player of the Year/,'OPOY').replace(/Defensive Player of the Year/,'DPOY')+' '+a.season).join(' · '):'';
+  h+='<div class="stk-s sp '+x.kind+(on?' on'+(x.kind==='elite'?' holo':x.kind==='award'?' gold':''):'')+'" data-k="'+x.key+'" style="--r:'+r+'deg"><span class="no">S'+(i+1)+'</span>'+(on?'<span class="rb">'+lab+'</span><span class="ov">'+ovr(p)+'</span><div class="fg" data-fig="'+x.key+'"></div><b>'+nm(p).replace(/</g,'&lt;')+'</b><small>'+pos(p)+(aw?' · '+aw.replace(/</g,'&lt;'):'')+'</small>':'<small>'+lab.toLowerCase()+' · '+pos(p)+'</small><b>'+nm(p).replace(/</g,'&lt;')+'</b>')+'</div>'});
+ $('pg').innerHTML=h+(P.S.length?'</div>':'')+'</div>';
+ for(const el of $('pg').querySelectorAll('[data-face]')){const p=P.B.find(x=>x.pid==el.dataset.face);try{el.innerHTML=await Faces.svgString(p.face,0,0,100,100,t)||''}catch(e){}if(!el.querySelector('svg'))el.innerHTML=Faces.silhouette;el.querySelector('svg').setAttribute('preserveAspectRatio','xMidYMin slice')}
+ const POS=FBGMPose.POSES;let j=0;for(const el of $('pg').querySelectorAll('[data-fig]')){const x=P.S.find(z=>z.key===el.dataset.fig),p=x.p;let face='';try{face=FBGMPose.faceFit(await Faces.svgString(p.face,0,0,100,100,t))}catch(e){}
+  el.innerHTML=FBGMPose.figure({c1:cs[0],c2:k2,number:p.jerseyNumber||'',pose:POS[(p.pid+j++)%POS.length],helmet:!face,face,skin:p.face&&p.face.body&&p.face.body.color})}
+ $('pg').querySelectorAll('.stk-s').forEach(e=>e.onclick=()=>{const b=book(),id=e.dataset.k;if(b[id])delete b[id];else b[id]=1;save(b);draw()})}
+$('prt').onclick=()=>window.print();
+$('all').onclick=()=>{const b=book();PAGES[cur].B.forEach(p=>b[p.pid]=1);save(b);draw()};
+$('sp').onclick=()=>{const b=book();PAGES[cur].S.forEach(x=>b[x.key]=1);save(b);draw()};
+$('clr').onclick=()=>{const b=book();PAGES[cur].B.forEach(p=>delete b[p.pid]);PAGES[cur].S.forEach(x=>delete b[x.key]);save(b);draw()};
+$('own').onclick=()=>{const b=book(),inb=new Set(PAGES.flatMap(P=>P.B.map(p=>p.pid)));let n=0;World.album().forEach(id=>{if(inb.has(id)&&!b[id]){b[id]=1;n++}});save(b);draw();$('tot').textContent+=' · '+n+' added from your card album'};
+Hub.setTitle('Sticker album');draw()})()</script></body></html>
