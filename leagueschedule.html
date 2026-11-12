@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>League schedule · FBGM Hub</title><link rel="stylesheet" href="hub.css"><style>select{min-height:44px;width:100%;background:var(--bg3);color:var(--tx);border:1px solid #2a3a52;border-radius:10px;padding:0 10px;font:inherit}.f{display:grid;gap:10px;grid-template-columns:1fr 2fr}.wk{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.wk button{min-width:40px;min-height:40px;border-radius:10px;border:1px solid #2a3a52;background:var(--bg3);color:var(--tx);font:inherit;cursor:pointer}.wk button.on{background:var(--c1);border-color:var(--c1)}.wk button.pl{border-color:var(--c2)}.gm{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid #1e2b40}.gm .tm{display:flex;align-items:center;gap:8px}.gm .tm.r{justify-content:flex-end;text-align:right}.gm b.s{font-variant-numeric:tabular-nums;min-width:90px;text-align:center}.gm .w{font-weight:700}.gm .l{color:var(--mu)}.gm .up{color:var(--mu);font-size:13px}.gm.me{background:color-mix(in srgb,var(--c1) 18%,transparent);border-radius:8px}</style></head><body>
+<main class="wrap"><div class="hero"><small>League · Schedule</small><h1>League schedule</h1><p id="sub">Loading…</p></div>
+<div class="card"><div class="f"><select id="y" aria-label="Season"></select><select id="t" aria-label="Team filter"></select></div><div class="wk" id="wk"></div></div>
+<div class="card sc" id="out"></div></main>
+<script src="nav.js"></script><script src="cloud.js"></script><script src="logos.js"></script><script src="db.js"></script><script src="leagueschedule.js"></script>
+<script>(async()=>{const $=i=>document.getElementById(i),o=$('out');const s=await HubDB.summary();
+if(!s){o.innerHTML='<p>No league imported yet.</p><a class="btn" href="import.html">Import league file</a>';return}
+const teams=(await HubDB.all('teams')).sort((a,b)=>(a.region+a.name).localeCompare(b.region+b.name)),nm=Object.fromEntries(teams.map(t=>[t.tid,(t.region+' '+t.name).trim()])),esc=x=>String(x).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));Logo.init(teams);
+const rem=(await HubDB.all('misc')).filter(r=>r.src==='schedule').map(r=>r.v);
+$('y').innerHTML=Object.keys(s.seasonGames||{}).sort((a,b)=>b-a).map(x=>`<option>${x}</option>`).join('');
+$('t').innerHTML='<option value="">All teams</option>'+teams.map(t=>`<option value="${t.tid}">${esc(nm[t.tid])}</option>`).join('');
+const Q=new URLSearchParams(location.search);if(Q.get('tid'))$('t').value=Q.get('tid');let day=null,days=[],cache={y:null};
+Hub.setTitle('League schedule');
+async function load(){const y=+$('y').value;if(cache.y!==y){const g=await HubDB.idx('games','season',y);cache={y,days:FBGMLeagueSchedule.byDay(g,y===s.season?rem:[],y)}}days=cache.days;
+ if(!days.some(d=>d.day===day)){const nx=days.find(d=>d.games.some(g=>!g.played));day=(nx||days[days.length-1]||{}).day}draw()}
+function draw(){const y=+$('y').value,f=$('t').value===''?null:+$('t').value;
+ $('wk').innerHTML=days.map(d=>`<button class="${d.day===day?'on':''}${d.games.some(g=>g.playoffs)?' pl':''}" data-d="${d.day}" title="${d.games.some(g=>g.playoffs)?'Playoffs':'Regular season'}">${d.day}</button>`).join('');
+ $('wk').querySelectorAll('button').forEach(b=>b.onclick=()=>{day=+b.dataset.d;draw()});
+ const D=days.find(d=>d.day===day),L=D?D.games.filter(g=>f==null||g.home===f||g.away===f):[];
+ const pl=D&&D.games.some(g=>g.playoffs);
+ $('sub').textContent=y+' · day '+(day??'–')+(pl?' · playoffs':'')+' · '+L.length+' game'+(L.length===1?'':'s')+(D?' · '+D.games.filter(g=>g.played).length+' played of '+D.games.length:'');
+ const side=(t,r,w,l)=>`<div class="tm${r?' r':''} ${w?'w':l?'l':''}">${r?'':Logo.t(t,24,y)}<a href="team.html#${t}">${esc(nm[t]||t)}</a>${r?Logo.t(t,24,y):''}</div>`;
+ o.innerHTML=L.length?L.map(g=>{const hw=g.played&&g.hp>g.ap,aw=g.played&&g.ap>g.hp;return `<div class="gm${g.home===s.userTid||g.away===s.userTid?' me':''}">${side(g.away,0,aw,hw)}<b class="s">${g.played?g.ap+' – '+g.hp:'<span class="up">at</span>'}</b>${side(g.home,1,hw,aw)}</div>`}).join('')+'<p class="mu" style="margin:10px 0 0">Away team on the left, home team on the right. Your team is highlighted.</p>':'<p class="mu">No games on this day'+(f!=null?' for this team':'')+'.</p>'}
+$('y').onchange=()=>{day=null;load()};$('t').onchange=draw;load()})()</script></body></html>

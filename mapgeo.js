@@ -40,7 +40,10 @@
   /* world, equirectangular, 960 x 480 (latitude 84 north to 58 south: Antarctica is not drawn) */
   function worldLayout(countries) {
     const pj = (lo, la) => [(lo + 180) / 360 * 960, (84 - Math.max(-58, Math.min(84, la))) / 142 * 480], paths = {};
-    countries.forEach(c => { if (c.name === 'Antarctica') return; paths[c.id || c.name] = path(c.polys, pj); });
+    /* 1.64: a ring that crosses the 180th meridian jumps from +180 to -180 and drew a stripe across the map: unwrap its longitudes, and draw it a second time shifted by 360 so the part that left the map shows at the other edge */
+    const unwrap = r => { let off = 0, pv = null; const o = r.map(([lo, la]) => { if (pv !== null) { if (lo + off - pv > 180) off -= 360; else if (lo + off - pv < -180) off += 360; } pv = lo + off; return [lo + off, la]; }); return o; };
+    const wpath = polys => { let d = ''; for (const p of polys) for (const r of p) { const u = unwrap(r), mn = Math.min(...u.map(q => q[0])), mx = Math.max(...u.map(q => q[0])), sh = (mx > 180 ? -360 : mn < -180 ? 360 : 0); d += path([[u]], pj) + (sh ? path([[u.map(([lo, la]) => [lo + sh, la])]], pj) : ''); } return d; };
+    countries.forEach(c => { if (c.name === 'Antarctica') return; paths[c.id || c.name] = wpath(c.polys); });
     return { project: pj, paths };
   }
   const FIPS = { AL: '01', AK: '02', AZ: '04', AR: '05', CA: '06', CO: '08', CT: '09', DE: '10', DC: '11', FL: '12', GA: '13', HI: '15', ID: '16', IL: '17', IN: '18', IA: '19', KS: '20', KY: '21', LA: '22', ME: '23', MD: '24', MA: '25', MI: '26', MN: '27', MS: '28', MO: '29', MT: '30', NE: '31', NV: '32', NH: '33', NJ: '34', NM: '35', NY: '36', NC: '37', ND: '38', OH: '39', OK: '40', OR: '41', PA: '42', RI: '44', SC: '45', SD: '46', TN: '47', TX: '48', UT: '49', VT: '50', VA: '51', WA: '53', WV: '54', WI: '55', WY: '56' };
